@@ -1,0 +1,25 @@
+# Byte-compiled / cache files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment / credentials
+.env
+*.env
+
+# Python virtual environments
+venv/
+.venv/
+env/
+
+# SQLAlchemy / Alembic
+alembic.ini
+
+# Docker-related
+db_data/
+*.log
+
+# IDE / editor settings
+.vscode/
+.idea/
+*.swp
