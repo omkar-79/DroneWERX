@@ -1,0 +1,32 @@
+version: "3.8"
+
+services:
+
+  db:
+    image: postgres:latest
+    container_name: dronewerx_db
+    env_file:
+      - .env
+    environment:
+      # These instruct the official Postgres image to initialize a DB and user.
+      POSTGRES_USER: "${DB_USER}"
+      POSTGRES_PASSWORD: "${DB_PASS}"
+      POSTGRES_DB: "${DB_NAME}"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432" # optional, only needed if you want to connect from host
+
+  backend:
+    build:
+      context: ./backend
+    container_name: dronewerx_backend
+    depends_on:
+      - db
+    env_file:
+      - .env # this points to /my-project/.env
+    ports:
+      - "8000:8000" # forwards container’s 8000 → host 8000
+
+volumes:
+  postgres_data:
