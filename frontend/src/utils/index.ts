@@ -1,5 +1,6 @@
 import { formatDistanceToNow, format } from 'date-fns';
-import type { Thread, SearchFilters, SortOption, Priority, Urgency, Classification, ThreadStatus } from '../types';
+import type { Thread, SearchFilters, SortOption } from '../types';
+import { Priority, Urgency, ThreadStatus, TRLLevel } from '../types';
 
 // Date formatting utilities
 export const formatTimeAgo = (date: Date): string => {
@@ -47,44 +48,31 @@ export const formatCurrency = (amount: number, currency: string = 'USD'): string
 // Priority and urgency utilities
 export const getPriorityColor = (priority: Priority): string => {
   switch (priority) {
-    case 'critical':
-      return 'var(--error-500)';
-    case 'high':
-      return 'var(--warning-500)';
-    case 'medium':
-      return 'var(--info-500)';
-    case 'low':
-      return 'var(--success-500)';
+    case Priority.LOW:
+      return 'bg-green-100 text-green-800';
+    case Priority.MEDIUM:
+      return 'bg-blue-100 text-blue-800';
+    case Priority.HIGH:
+      return 'bg-orange-100 text-orange-800';
+    case Priority.CRITICAL:
+      return 'bg-red-100 text-red-800';
     default:
-      return 'var(--gray-500)';
+      return 'bg-gray-100 text-gray-800';
   }
 };
 
 export const getUrgencyColor = (urgency: Urgency): string => {
   switch (urgency) {
-    case 'flash':
-      return 'var(--error-600)';
-    case 'immediate':
-      return 'var(--error-500)';
-    case 'priority':
-      return 'var(--warning-500)';
-    case 'routine':
-      return 'var(--gray-500)';
+    case Urgency.ROUTINE:
+      return 'bg-gray-100 text-gray-800';
+    case Urgency.PRIORITY:
+      return 'bg-blue-100 text-blue-800';
+    case Urgency.IMMEDIATE:
+      return 'bg-orange-100 text-orange-800';
+    case Urgency.FLASH:
+      return 'bg-red-100 text-red-800';
     default:
-      return 'var(--gray-500)';
-  }
-};
-
-export const getClassificationColor = (classification: Classification): string => {
-  switch (classification) {
-    case 'confidential':
-      return 'var(--error-500)';
-    case 'restricted':
-      return 'var(--warning-500)';
-    case 'public':
-      return 'var(--success-500)';
-    default:
-      return 'var(--gray-500)';
+      return 'bg-gray-100 text-gray-800';
   }
 };
 
@@ -105,22 +93,34 @@ export const getStatusColor = (status: ThreadStatus): string => {
   }
 };
 
+export const getTRLColor = (trlLevel: TRLLevel): string => {
+  switch (trlLevel) {
+    case 'trl1':
+    case 'trl2':
+    case 'trl3':
+      return 'var(--error-500)';   // Red for early stage
+    case 'trl4':
+    case 'trl5':
+    case 'trl6':
+      return 'var(--warning-500)'; // Orange for development stage
+    case 'trl7':
+    case 'trl8':
+      return 'var(--info-500)';    // Blue for demonstration stage
+    case 'trl9':
+      return 'var(--success-500)'; // Green for operational
+    default:
+      return 'var(--gray-500)';
+  }
+};
+
 // Search and filter utilities
 export const filterThreads = (threads: Thread[], filters: SearchFilters): Thread[] => {
   return threads.filter(thread => {
     // Text search
     if (filters.query) {
       const query = filters.query.toLowerCase();
-      const searchableText = [
-        thread.title,
-        thread.description,
-        thread.author.fullName,
-        thread.author.username,
-        ...thread.tags.map(tag => tag.name),
-        thread.category.name
-      ].join(' ').toLowerCase();
-      
-      if (!searchableText.includes(query)) {
+      const searchText = `${thread.title} ${thread.description} ${thread.author.username}`.toLowerCase();
+      if (!searchText.includes(query)) {
         return false;
       }
     }
@@ -154,13 +154,6 @@ export const filterThreads = (threads: Thread[], filters: SearchFilters): Thread
       }
     }
 
-    // Classification filter
-    if (filters.classifications && filters.classifications.length > 0) {
-      if (!filters.classifications.includes(thread.classification)) {
-        return false;
-      }
-    }
-
     // Urgency filter
     if (filters.urgencies && filters.urgencies.length > 0) {
       if (!filters.urgencies.includes(thread.urgency)) {
@@ -170,7 +163,7 @@ export const filterThreads = (threads: Thread[], filters: SearchFilters): Thread
 
     // Date range filter
     if (filters.dateRange) {
-      const threadDate = thread.createdAt;
+      const threadDate = new Date(thread.createdAt);
       if (threadDate < filters.dateRange.from || threadDate > filters.dateRange.to) {
         return false;
       }
@@ -183,14 +176,14 @@ export const filterThreads = (threads: Thread[], filters: SearchFilters): Thread
       }
     }
 
-    // Has accepted solution filter
+    // Accepted solution filter
     if (filters.hasAcceptedSolution !== undefined) {
       if (thread.isAcceptedSolution !== filters.hasAcceptedSolution) {
         return false;
       }
     }
 
-    // Has bounty filter
+    // Bounty filter
     if (filters.hasBounty !== undefined) {
       const hasBounty = !!thread.bounty;
       if (hasBounty !== filters.hasBounty) {
@@ -207,9 +200,7 @@ export const filterThreads = (threads: Thread[], filters: SearchFilters): Thread
 
     // Location filter
     if (filters.location) {
-      const location = filters.location.toLowerCase();
-      const threadLocation = thread.location?.toLowerCase() || '';
-      if (!threadLocation.includes(location)) {
+      if (!thread.location || !thread.location.toLowerCase().includes(filters.location.toLowerCase())) {
         return false;
       }
     }

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Filter,
   ChevronDown,
@@ -10,10 +10,15 @@ import {
   Target,
   Clock,
   CheckCircle,
-  X
+  X,
+  Search,
+  Star,
+  AlertTriangle,
+  TrendingUp,
+  MapPin
 } from 'lucide-react';
 import type { SearchFilters, SortOption } from '../types';
-import { Priority, ThreadStatus, Classification, Urgency, UserRole } from '../types';
+import { Priority, ThreadStatus, Urgency, UserRole } from '../types';
 import { mockCategories, mockTags } from '../data/mockData';
 import { useToggle } from '../hooks';
 
@@ -35,10 +40,14 @@ const sortOptions: SortOption[] = [
   { field: 'updatedAt', direction: 'desc', label: 'Recently Updated' }
 ];
 
-const priorityOptions: Priority[] = [Priority.CRITICAL, Priority.HIGH, Priority.MEDIUM, Priority.LOW];
-const statusOptions: ThreadStatus[] = [ThreadStatus.OPEN, ThreadStatus.IN_PROGRESS, ThreadStatus.SOLVED, ThreadStatus.CLOSED, ThreadStatus.ARCHIVED];
-const classificationOptions: Classification[] = [Classification.PUBLIC, Classification.RESTRICTED, Classification.CONFIDENTIAL];
-const urgencyOptions: Urgency[] = [Urgency.FLASH, Urgency.IMMEDIATE, Urgency.PRIORITY, Urgency.ROUTINE];
+const priorityOptions: Priority[] = [Priority.LOW, Priority.MEDIUM, Priority.HIGH, Priority.CRITICAL];
+const statusOptions: ThreadStatus[] = [
+  ThreadStatus.OPEN, 
+  ThreadStatus.IN_PROGRESS, 
+  ThreadStatus.SOLVED, 
+  ThreadStatus.CLOSED
+];
+const urgencyOptions: Urgency[] = [Urgency.ROUTINE, Urgency.PRIORITY, Urgency.IMMEDIATE, Urgency.FLASH];
 const roleOptions: UserRole[] = [UserRole.WARFIGHTER, UserRole.INNOVATOR, UserRole.MODERATOR, UserRole.ADMIN];
 
 export const Sidebar: React.FC<SidebarProps> = ({

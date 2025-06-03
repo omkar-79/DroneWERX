@@ -51,9 +51,10 @@ export interface Thread {
   tags: Tag[];
   priority: Priority;
   status: ThreadStatus;
-  classification: Classification;
   location?: string;
   urgency: Urgency;
+  trlLevel?: TRLLevel;
+  domain?: string;
   createdAt: Date;
   updatedAt: Date;
   views: number;
@@ -103,12 +104,6 @@ export enum ThreadStatus {
   ARCHIVED = 'archived'
 }
 
-export enum Classification {
-  PUBLIC = 'public',
-  RESTRICTED = 'restricted',
-  CONFIDENTIAL = 'confidential'
-}
-
 export enum Urgency {
   ROUTINE = 'routine',
   PRIORITY = 'priority',
@@ -116,27 +111,57 @@ export enum Urgency {
   FLASH = 'flash'
 }
 
+export enum TRLLevel {
+  TRL1 = 'trl1', // Basic principles observed
+  TRL2 = 'trl2', // Technology concept formulated
+  TRL3 = 'trl3', // Experimental proof of concept
+  TRL4 = 'trl4', // Technology validated in lab
+  TRL5 = 'trl5', // Technology validated in relevant environment
+  TRL6 = 'trl6', // Technology demonstrated in relevant environment
+  TRL7 = 'trl7', // System prototype demonstration
+  TRL8 = 'trl8', // System complete and qualified
+  TRL9 = 'trl9'  // Actual system proven in operational environment
+}
+
 // Solution Types
+export enum SolutionStatus {
+  PENDING = 'pending',
+  PASS = 'pass',
+  FAIL = 'fail',
+  APPROVED = 'approved'
+}
+
 export interface Solution {
   id: string;
   threadId: string;
-  authorId: string;
   author: User;
   content: string;
+  createdAt: Date;
+  updatedAt?: Date;
+  isEdited?: boolean;
   upvotes: number;
   downvotes: number;
-  createdAt: Date;
-  updatedAt: Date;
+  hasUserVoted: 'up' | 'down' | null;
   isAccepted: boolean;
-  attachments: Attachment[];
+  status: SolutionStatus;
+  statusUpdatedBy?: string;
+  statusUpdatedAt?: Date;
+  statusNote?: string;
+  attachments: string[];
+  mediaAttachments?: {
+    images: string[];
+    videos: string[];
+    documents: string[];
+  };
+  technicalSpecs?: {
+    hardware?: string[];
+    software?: string[];
+    requirements?: string[];
+    estimatedCost?: number;
+    implementationTime?: string;
+    trlLevel?: TRLLevel;
+  };
   comments: Comment[];
-  commentCount: number;
-  techSpecs?: TechnicalSpecification[];
-  implementationSteps?: ImplementationStep[];
-  estimatedCost?: number;
-  estimatedTime?: string;
-  feasibilityScore: number;
-  riskAssessment?: RiskAssessment;
 }
 
 export interface TechnicalSpecification {
@@ -165,19 +190,16 @@ export interface RiskAssessment {
 // Comment Types
 export interface Comment {
   id: string;
-  content: string;
-  authorId: string;
   author: User;
-  parentId?: string; // For nested comments
-  threadId?: string;
-  solutionId?: string;
+  content: string;
+  createdAt: Date;
   upvotes: number;
   downvotes: number;
-  createdAt: Date;
-  updatedAt: Date;
-  isEdited: boolean;
-  attachments: Attachment[];
-  replies: Comment[];
+  hasUserVoted: 'up' | 'down' | null;
+  parentId?: string; // For nested replies
+  replies?: Comment[];
+  isEdited?: boolean;
+  editedAt?: Date;
 }
 
 // Attachment Types
@@ -248,7 +270,6 @@ export interface SearchFilters {
   tags?: string[];
   priorities?: Priority[];
   statuses?: ThreadStatus[];
-  classifications?: Classification[];
   urgencies?: Urgency[];
   dateRange?: {
     from: Date;
@@ -306,7 +327,6 @@ export interface CreateThreadForm {
   category: string;
   tags: string[];
   priority: Priority;
-  classification: Classification;
   urgency: Urgency;
   location?: string;
   attachments: File[];
@@ -321,4 +341,13 @@ export interface CreateSolutionForm {
   estimatedCost?: number;
   estimatedTime?: string;
   riskAssessment?: RiskAssessment;
+}
+
+export interface ThreadActivity {
+  id: string;
+  type: 'solution_added' | 'comment_added' | 'thread_updated' | 'solution_accepted' | 'bounty_awarded';
+  author: User;
+  timestamp: Date;
+  description: string;
+  metadata?: Record<string, any>;
 } 

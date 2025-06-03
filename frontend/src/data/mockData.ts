@@ -6,14 +6,16 @@ import type {
   Tag, 
   Badge,
   Comment,
-  Bounty
+  Bounty,
+  ThreadActivity
 } from '../types';
 import { 
   UserRole, 
   Priority, 
   ThreadStatus, 
-  Classification, 
-  Urgency
+  Urgency,
+  TRLLevel,
+  SolutionStatus
 } from '../types';
 
 // Mock Badges
@@ -206,135 +208,138 @@ export const mockBounties: Bounty[] = [
 export const mockThreads: Thread[] = [
   {
     id: '1',
-    title: 'GPS-Denied Navigation Solution for Urban Combat Operations',
-    description: 'Our unit is operating in a GPS-denied environment where traditional navigation systems fail. We need reliable alternatives for drone navigation in urban combat scenarios with heavy electronic interference. The environment includes multi-story buildings, underground passages, and active jamming equipment.',
+    title: 'GPS-Denied Navigation for Urban Combat Environments',
+    description: 'Our current drones lose GPS signal in dense urban environments. Need alternative navigation systems that can operate without satellite connectivity. Must be lightweight and battery efficient.',
     authorId: '1',
     author: mockUsers[0],
-    category: mockCategories[3],
-    tags: [mockTags[0], mockTags[1], mockTags[4]],
+    category: mockCategories[3], // Navigation & GPS
+    tags: [mockTags[1], mockTags[6]], // gps-denied, real-time
     priority: Priority.CRITICAL,
     status: ThreadStatus.OPEN,
-    classification: Classification.RESTRICTED,
-    location: 'Urban Theater - CLASSIFIED',
     urgency: Urgency.IMMEDIATE,
-    createdAt: new Date('2024-01-15T10:30:00Z'),
-    updatedAt: new Date('2024-01-20T14:22:00Z'),
-    views: 156,
-    upvotes: 23,
-    downvotes: 2,
-    solutionCount: 7,
-    commentCount: 15,
+    trlLevel: TRLLevel.TRL4,
+    domain: 'Urban Operations',
+    location: 'Urban Combat Training Center',
+    createdAt: new Date('2024-01-10T08:30:00Z'),
+    updatedAt: new Date('2024-01-12T14:22:00Z'),
+    views: 234,
+    upvotes: 45,
+    downvotes: 3,
+    solutionCount: 8,
+    commentCount: 23,
     isAcceptedSolution: false,
     attachments: [],
-    hotScore: 89.5,
+    hotScore: 78,
     isSticky: true,
     isClosed: false,
     bounty: mockBounties[0]
   },
   {
     id: '2',
-    title: 'AI-Powered Target Recognition in Low-Light Conditions',
-    description: 'Need assistance with improving target recognition accuracy during night operations. Current AI models struggle with thermal imaging data and low-light environments. Looking for machine learning solutions that can differentiate between civilians and combatants in urban settings.',
-    authorId: '3',
-    author: mockUsers[2],
-    category: mockCategories[0],
-    tags: [mockTags[2], mockTags[3], mockTags[6]],
-    priority: Priority.HIGH,
-    status: ThreadStatus.IN_PROGRESS,
-    classification: Classification.RESTRICTED,
-    location: 'Middle East Theater',
-    urgency: Urgency.PRIORITY,
-    createdAt: new Date('2024-01-18T08:15:00Z'),
-    updatedAt: new Date('2024-01-22T16:45:00Z'),
-    views: 234,
-    upvotes: 45,
-    downvotes: 3,
-    solutionCount: 12,
-    commentCount: 28,
+    title: 'Weather-Resistant Drone Operations in Extreme Conditions',
+    description: 'Operating in desert sandstorms and arctic conditions. Current drones fail due to sand infiltration and extreme temperature variations. Need weatherproof solutions that maintain operational capability.',
+    authorId: '1',
+    author: mockUsers[0],
+    category: mockCategories[4], // Hardware & Maintenance
+    tags: [mockTags[7], mockTags[4]], // weather-resistant, combat-proven
+    priority: Priority.MEDIUM,
+    status: ThreadStatus.SOLVED,
+    urgency: Urgency.ROUTINE,
+    trlLevel: TRLLevel.TRL6,
+    domain: 'Desert & Arctic Theaters',
+    location: 'Desert & Arctic Testing Facility',
+    createdAt: new Date('2024-01-08T10:15:00Z'),
+    updatedAt: new Date('2024-01-15T16:45:00Z'),
+    views: 145,
+    upvotes: 26,
+    downvotes: 1,
+    solutionCount: 6,
+    commentCount: 19,
     isAcceptedSolution: true,
-    acceptedSolutionId: 'sol_2_1',
+    acceptedSolutionId: '1',
     attachments: [],
-    hotScore: 92.1,
+    hotScore: 42,
     isSticky: false,
     isClosed: false
   },
   {
     id: '3',
-    title: 'Drone Swarm Coordination Under Electronic Jamming',
-    description: 'Looking for solutions to maintain drone swarm coordination when facing heavy electronic warfare attacks. Current communication protocols fail when enemy forces deploy wide-spectrum jammers. Need redundant communication methods.',
-    authorId: '1',
-    author: mockUsers[0],
-    category: mockCategories[2],
-    tags: [mockTags[0], mockTags[2], mockTags[4]],
+    title: 'Autonomous Swarm Coordination Without Central Command',
+    description: 'Deploy multiple drones that can coordinate autonomously when communication with base is compromised. Need mesh networking and AI decision-making capabilities.',
+    authorId: '3',
+    author: mockUsers[2],
+    category: mockCategories[5], // Software & AI
+    tags: [mockTags[2], mockTags[6]], // autonomous, real-time
     priority: Priority.HIGH,
-    status: ThreadStatus.OPEN,
-    classification: Classification.CONFIDENTIAL,
-    location: 'Pacific Theater',
+    status: ThreadStatus.IN_PROGRESS,
     urgency: Urgency.PRIORITY,
-    createdAt: new Date('2024-01-20T12:00:00Z'),
-    updatedAt: new Date('2024-01-21T09:30:00Z'),
-    views: 89,
-    upvotes: 18,
-    downvotes: 1,
+    trlLevel: TRLLevel.TRL3,
+    domain: 'Swarm Operations',
+    location: 'Joint Forces Training Base',
+    createdAt: new Date('2024-01-12T14:20:00Z'),
+    updatedAt: new Date('2024-01-14T09:33:00Z'),
+    views: 189,
+    upvotes: 34,
+    downvotes: 2,
     solutionCount: 4,
-    commentCount: 11,
+    commentCount: 15,
     isAcceptedSolution: false,
     attachments: [],
-    hotScore: 76.3,
+    hotScore: 65,
     isSticky: false,
     isClosed: false
   },
   {
     id: '4',
-    title: 'Extended Battery Life for Long-Duration Reconnaissance Missions',
-    description: 'Our reconnaissance missions require 8-12 hour flight times, but current battery technology limits us to 4-6 hours. Seeking innovative power solutions, including solar, fuel cells, or advanced battery chemistry.',
+    title: 'Extended Battery Life for 24-Hour Surveillance Missions',
+    description: 'Current battery technology limits our surveillance missions to 4-6 hours. Need solutions for extended flight time while maintaining payload capacity.',
     authorId: '3',
     author: mockUsers[2],
-    category: mockCategories[4],
-    tags: [mockTags[5], mockTags[3]],
-    priority: Priority.MEDIUM,
+    category: mockCategories[4], // Hardware & Maintenance
+    tags: [mockTags[3], mockTags[5]], // surveillance, cost-effective
+    priority: Priority.HIGH,
     status: ThreadStatus.OPEN,
-    classification: Classification.PUBLIC,
-    location: 'Various Theaters',
-    urgency: Urgency.ROUTINE,
-    createdAt: new Date('2024-01-19T14:20:00Z'),
-    updatedAt: new Date('2024-01-21T11:15:00Z'),
-    views: 178,
-    upvotes: 32,
-    downvotes: 4,
-    solutionCount: 9,
-    commentCount: 22,
+    urgency: Urgency.PRIORITY,
+    trlLevel: TRLLevel.TRL5,
+    domain: 'Surveillance Operations',
+    createdAt: new Date('2024-01-14T11:45:00Z'),
+    updatedAt: new Date('2024-01-14T11:45:00Z'),
+    views: 98,
+    upvotes: 18,
+    downvotes: 0,
+    solutionCount: 3,
+    commentCount: 12,
     isAcceptedSolution: false,
     attachments: [],
-    hotScore: 68.7,
+    hotScore: 38,
     isSticky: false,
     isClosed: false,
     bounty: mockBounties[1]
   },
   {
     id: '5',
-    title: 'Weather-Resistant Drone Operations in Extreme Conditions',
-    description: 'Operating in desert sandstorms and arctic conditions. Current drones fail due to sand infiltration and extreme temperature variations. Need weatherproofing solutions that don\'t compromise performance.',
+    title: 'Electronic Countermeasures Against Enemy Drone Jammers',
+    description: 'Enemy forces are using sophisticated jamming equipment to disable our drone communications. Need frequency-hopping or mesh network solutions.',
     authorId: '1',
     author: mockUsers[0],
-    category: mockCategories[4],
-    tags: [mockTags[7], mockTags[4]],
-    priority: Priority.MEDIUM,
-    status: ThreadStatus.SOLVED,
-    classification: Classification.PUBLIC,
-    location: 'Desert & Arctic Theaters',
-    urgency: Urgency.ROUTINE,
-    createdAt: new Date('2024-01-10T09:45:00Z'),
-    updatedAt: new Date('2024-01-18T13:20:00Z'),
-    views: 145,
-    upvotes: 28,
-    downvotes: 2,
-    solutionCount: 6,
-    commentCount: 19,
-    isAcceptedSolution: true,
-    acceptedSolutionId: 'sol_5_1',
+    category: mockCategories[2], // Electronic Warfare
+    tags: [mockTags[0], mockTags[4]], // urgent, combat-proven
+    priority: Priority.CRITICAL,
+    status: ThreadStatus.OPEN,
+    urgency: Urgency.FLASH,
+    trlLevel: TRLLevel.TRL7,
+    domain: 'Electronic Warfare',
+    location: 'Electronic Warfare Training Range',
+    createdAt: new Date('2024-01-16T16:30:00Z'),
+    updatedAt: new Date('2024-01-16T16:30:00Z'),
+    views: 67,
+    upvotes: 12,
+    downvotes: 1,
+    solutionCount: 2,
+    commentCount: 8,
+    isAcceptedSolution: false,
     attachments: [],
-    hotScore: 45.2,
+    hotScore: 89,
     isSticky: false,
     isClosed: false
   }
@@ -343,96 +348,197 @@ export const mockThreads: Thread[] = [
 // Mock Solutions
 export const mockSolutions: Solution[] = [
   {
-    id: 'sol_2_1',
-    threadId: '2',
-    authorId: '2',
-    author: mockUsers[1],
-    content: 'I\'ve developed a hybrid AI model that combines thermal imaging with LiDAR data for improved target recognition. The solution uses a multi-modal neural network trained on diverse datasets including various lighting conditions and thermal signatures.',
-    upvotes: 34,
+    id: 'sol-1',
+    threadId: '1',
+    author: mockUsers[1], // tech_innovator
+    content: `
+      <h3>Multi-Spectral Reconnaissance Solution</h3>
+      <p>I propose a modular sensor package that combines visual, thermal, and multispectral imaging capabilities for comprehensive reconnaissance in urban environments.</p>
+      
+      <h4>Technical Approach:</h4>
+      <ul>
+        <li>Primary Camera: Sony IMX686 64MP with optical stabilization</li>
+        <li>Thermal Imaging: FLIR Boson 640x512 uncooled microbolometer</li>
+        <li>Multispectral: MicaSense RedEdge-P for vegetation analysis</li>
+        <li>AI Processing: NVIDIA Jetson Nano for real-time object detection</li>
+      </ul>
+      
+      <h4>Key Features:</h4>
+      <ul>
+        <li>Real-time target identification using YOLOv8</li>
+        <li>Automatic threat identification and prioritization</li>
+        <li>Edge computing for reduced latency</li>
+        <li>Encrypted data transmission with AES-256</li>
+      </ul>
+      
+      <p>This solution provides 30% better target detection rates compared to single-spectrum systems and reduces false positives by 45%.</p>
+    `,
+    createdAt: new Date('2024-01-15T10:30:00Z'),
+    updatedAt: new Date('2024-01-15T14:22:00Z'),
+    isEdited: true,
+    upvotes: 15,
     downvotes: 2,
-    createdAt: new Date('2024-01-19T10:30:00Z'),
-    updatedAt: new Date('2024-01-20T15:45:00Z'),
+    hasUserVoted: null,
     isAccepted: true,
+    status: SolutionStatus.APPROVED,
+    statusUpdatedBy: '1',
+    statusUpdatedAt: new Date('2024-01-16T08:00:00Z'),
+    statusNote: 'Excellent solution that meets all requirements. Approved for prototype development.',
     attachments: [],
-    comments: [],
-    commentCount: 8,
-    techSpecs: [
-      {
-        id: 'ts_1',
-        name: 'Accuracy',
-        value: '94.5',
-        unit: '%',
-        description: 'Target recognition accuracy in low-light conditions'
-      },
-      {
-        id: 'ts_2',
-        name: 'Processing Time',
-        value: '150',
-        unit: 'ms',
-        description: 'Real-time processing latency'
-      }
-    ],
-    implementationSteps: [
-      {
-        id: 'is_1',
-        stepNumber: 1,
-        title: 'Data Collection',
-        description: 'Gather thermal and LiDAR training data from various environments',
-        estimatedTime: '2 weeks',
-        requiredResources: ['Thermal cameras', 'LiDAR sensors', 'Data storage']
-      },
-      {
-        id: 'is_2',
-        stepNumber: 2,
-        title: 'Model Training',
-        description: 'Train the multi-modal neural network using collected data',
-        estimatedTime: '3 weeks',
-        requiredResources: ['GPU cluster', 'ML frameworks', 'Training data']
-      }
-    ],
-    estimatedCost: 75000,
-    estimatedTime: '6-8 weeks',
-    feasibilityScore: 85,
-    riskAssessment: {
-      level: 'medium',
-      factors: ['Requires extensive training data', 'Hardware compatibility'],
-      mitigation: ['Phased rollout', 'Compatibility testing', 'Fallback systems']
-    }
+    mediaAttachments: {
+      images: [
+        'https://images.unsplash.com/photo-1473968512647-3e447244af8f?w=600&h=400',
+        'https://images.unsplash.com/photo-1544197150-b99a580bb7a8?w=600&h=400'
+      ],
+      videos: ['https://example.com/demo-video.mp4'],
+      documents: ['technical-specs.pdf', 'implementation-guide.pdf']
+    },
+    technicalSpecs: {
+      hardware: ['Sony IMX686 Camera', 'FLIR Boson Thermal', 'MicaSense RedEdge-P', 'NVIDIA Jetson Nano'],
+      software: ['YOLOv8', 'OpenCV', 'TensorRT', 'Custom ML Pipeline'],
+      requirements: ['12V Power Supply', 'Gimbal Mount', 'Data Link > 10Mbps'],
+      estimatedCost: 8500,
+      implementationTime: '6-8 weeks',
+      trlLevel: TRLLevel.TRL7
+    },
+    comments: []
+  },
+  {
+    id: 'sol-2', 
+    threadId: '1',
+    author: mockUsers[2], // field_commander
+    content: `
+      <h3>Lightweight LIDAR Integration</h3>
+      <p>Alternative approach using miniaturized LIDAR technology for 3D mapping and obstacle detection.</p>
+      
+      <h4>System Components:</h4>
+      <ul>
+        <li>Velodyne Puck Lite - 16 channel LIDAR</li>
+        <li>Intel RealSense D455 for close-range depth</li>
+        <li>Custom SLAM algorithm for real-time mapping</li>
+      </ul>
+      
+      <p>This solution excels in GPS-denied environments and provides accurate 3D reconstruction.</p>
+      
+      <h4>Field Test Results:</h4>
+      <p>Conducted preliminary tests in urban training facility with 95% accuracy in GPS-denied scenarios.</p>
+    `,
+    createdAt: new Date('2024-01-16T14:20:00Z'),
+    upvotes: 8,
+    downvotes: 1,
+    hasUserVoted: 'up',
+    isAccepted: false,
+    status: SolutionStatus.PASS,
+    statusUpdatedBy: '1',
+    statusUpdatedAt: new Date('2024-01-17T10:30:00Z'),
+    statusNote: 'Good concept but needs refinement for field deployment.',
+    attachments: [],
+    mediaAttachments: {
+      images: ['https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=600&h=400'],
+      videos: [],
+      documents: ['lidar-specs.pdf']
+    },
+    technicalSpecs: {
+      hardware: ['Velodyne Puck Lite', 'Intel RealSense D455'],
+      software: ['Custom SLAM', 'PCL Library', 'ROS2'],
+      requirements: ['High-performance compute unit', 'Stable platform'],
+      estimatedCost: 12000,
+      implementationTime: '10-12 weeks',
+      trlLevel: TRLLevel.TRL5
+    },
+    comments: []
+  },
+  {
+    id: 'sol-3',
+    threadId: '2', 
+    author: mockUsers[1],
+    content: `
+      <h3>Redundant Navigation System</h3>
+      <p>Multi-modal navigation solution combining GPS, INS, and visual odometry for reliable operation in contested environments.</p>
+      
+      <h4>Architecture:</h4>
+      <ul>
+        <li>Primary: Military-grade GPS receiver</li>
+        <li>Secondary: High-accuracy IMU with gyroscopes</li>
+        <li>Tertiary: Visual-inertial odometry system</li>
+        <li>Quaternary: Magnetometer array for heading reference</li>
+      </ul>
+    `,
+    createdAt: new Date('2024-01-17T09:45:00Z'),
+    upvotes: 12,
+    downvotes: 0,
+    hasUserVoted: null,
+    isAccepted: false,
+    status: SolutionStatus.PENDING,
+    attachments: [],
+    mediaAttachments: {
+      images: [],
+      videos: [],
+      documents: []
+    },
+    technicalSpecs: {
+      hardware: ['Military GPS', 'Honeywell IMU', 'Stereo Camera'],
+      software: ['EKF Fusion', 'ORB-SLAM3', 'Custom Navigation Stack'],
+      estimatedCost: 15000,
+      implementationTime: '12-16 weeks',
+      trlLevel: TRLLevel.TRL6
+    },
+    comments: []
   }
 ];
 
 // Mock Comments
 export const mockComments: Comment[] = [
   {
-    id: 'comment_1',
-    content: 'This looks promising! Have you tested this in actual field conditions?',
-    authorId: '1',
-    author: mockUsers[0],
-    threadId: '2',
-    solutionId: 'sol_2_1',
+    id: 'comment-1',
+    author: mockUsers[0], // warfighter_alpha  
+    content: 'Excellent solution! The multi-spectral approach addresses our core requirements. Have you tested this in dusty environments?',
+    createdAt: new Date('2024-01-15T11:00:00Z'),
     upvotes: 5,
     downvotes: 0,
-    createdAt: new Date('2024-01-20T08:30:00Z'),
-    updatedAt: new Date('2024-01-20T08:30:00Z'),
-    isEdited: false,
-    attachments: [],
-    replies: []
+    hasUserVoted: null,
+    replies: [
+      {
+        id: 'comment-1-1',
+        author: mockUsers[1], // innovator_alpha
+        content: 'Yes, we conducted field tests in Arizona desert conditions. The system maintained 95% accuracy even with moderate dust levels. The thermal imaging actually helps cut through dust better than visible spectrum.',
+        createdAt: new Date('2024-01-15T11:15:00Z'),
+        upvotes: 3,
+        downvotes: 0,
+        hasUserVoted: null,
+        parentId: 'comment-1'
+      }
+    ]
   },
   {
-    id: 'comment_2',
-    content: 'We conducted tests in simulated environments with 94.5% accuracy. Field testing is scheduled for next month.',
-    authorId: '2',
-    author: mockUsers[1],
-    parentId: 'comment_1',
-    threadId: '2',
-    solutionId: 'sol_2_1',
+    id: 'comment-2',
+    author: mockUsers[2], // tech_innovator
+    content: 'Impressive specs on the Sony IMX686. What about power consumption? Battery life is critical for extended missions.',
+    createdAt: new Date('2024-01-15T12:30:00Z'),
+    upvotes: 4,
+    downvotes: 0,
+    hasUserVoted: 'up',
+    replies: [
+      {
+        id: 'comment-2-1', 
+        author: mockUsers[1],
+        content: 'Power optimization was a key focus. Total system draws 8.5W at full operation, giving us 4-5 hours flight time with standard battery. We also implemented adaptive power modes.',
+        createdAt: new Date('2024-01-15T13:00:00Z'),
+        upvotes: 2,
+        downvotes: 0,
+        hasUserVoted: null,
+        parentId: 'comment-2'
+      }
+    ]
+  },
+  {
+    id: 'comment-3',
+    author: mockUsers[0],
+    content: 'This solution has been selected for prototype development. Excellent work team!',
+    createdAt: new Date('2024-01-16T08:00:00Z'),
     upvotes: 8,
     downvotes: 0,
-    createdAt: new Date('2024-01-20T10:15:00Z'),
-    updatedAt: new Date('2024-01-20T10:15:00Z'),
-    isEdited: false,
-    attachments: [],
-    replies: []
+    hasUserVoted: null
   }
 ];
 
@@ -446,4 +552,39 @@ export const calculateHotScore = (thread: Thread): number => {
 // Update hot scores
 mockThreads.forEach(thread => {
   thread.hotScore = calculateHotScore(thread);
-}); 
+});
+
+export const mockThreadActivities: ThreadActivity[] = [
+  {
+    id: 'activity-1',
+    type: 'solution_added',
+    author: mockUsers[1],
+    timestamp: new Date('2024-01-15T10:30:00Z'),
+    description: 'added a new solution proposal',
+    metadata: { solutionId: 'sol-1' }
+  },
+  {
+    id: 'activity-2',
+    type: 'comment_added',
+    author: mockUsers[0],
+    timestamp: new Date('2024-01-15T11:00:00Z'),
+    description: 'commented on the multi-spectral solution',
+    metadata: { commentId: 'comment-1' }
+  },
+  {
+    id: 'activity-3',
+    type: 'solution_accepted',
+    author: mockUsers[0],
+    timestamp: new Date('2024-01-16T08:00:00Z'),
+    description: 'accepted the multi-spectral reconnaissance solution',
+    metadata: { solutionId: 'sol-1' }
+  },
+  {
+    id: 'activity-4',
+    type: 'bounty_awarded',
+    author: mockUsers[0],
+    timestamp: new Date('2024-01-16T08:15:00Z'),
+    description: 'awarded the bounty to innovator_alpha',
+    metadata: { amount: 5000, recipient: 'innovator_alpha' }
+  }
+]; 

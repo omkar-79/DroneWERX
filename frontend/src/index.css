@@ -3,18 +3,18 @@
   /* GLOBAL COLOR SYSTEM - DroneWERX */
   /* ============================================ */
   
-  /* Primary Colors */
-  --primary-50: #eff6ff;
-  --primary-100: #dbeafe;
-  --primary-200: #bfdbfe;
-  --primary-300: #93c5fd;
-  --primary-400: #60a5fa;
-  --primary-500: #3b82f6;
-  --primary-600: #2563eb;
-  --primary-700: #1d4ed8;
-  --primary-800: #1e40af;
-  --primary-900: #1e3a8a;
-  --primary-950: #172554;
+  /* Primary Colors - Based on Navy Blue #0E2148 */
+  --primary-50: #f0f4ff;
+  --primary-100: #e1eafe;
+  --primary-200: #c3d5fd;
+  --primary-300: #a5c0fc;
+  --primary-400: #87abfb;
+  --primary-500: #6996fa;
+  --primary-600: #4a6cf7;
+  --primary-700: #2a42f4;
+  --primary-800: #1e2f8a;
+  --primary-900: #0E2148;
+  --primary-950: #0a1a36;
 
   /* Secondary Colors */
   --secondary-50: #f8fafc;
@@ -71,8 +71,8 @@
   --gray-950: #030712;
 
   /* Semantic Color Assignments */
-  --color-primary: var(--primary-600);
-  --color-primary-hover: var(--primary-700);
+  --color-primary: var(--primary-900);
+  --color-primary-hover: var(--primary-800);
   --color-primary-light: var(--primary-100);
   
   --color-secondary: var(--secondary-600);
@@ -90,7 +90,7 @@
   --color-text-on-primary: #ffffff;
 
   --color-border: var(--gray-200);
-  --color-border-focus: var(--primary-500);
+  --color-border-focus: var(--primary-700);
   --color-border-error: var(--error-500);
 
   --color-shadow: rgba(0, 0, 0, 0.1);

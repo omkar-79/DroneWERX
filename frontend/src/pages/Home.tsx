@@ -1,5 +1,6 @@
 import React from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Header } from '../components/Header';
 import { Sidebar } from '../components/Sidebar';
 import { ThreadCard } from '../components/ThreadCard';
@@ -7,6 +8,8 @@ import { useThreadSearch, usePagination } from '../hooks';
 import { mockThreads } from '../data/mockData';
 
 export const Home: React.FC = () => {
+  const navigate = useNavigate();
+  
   const {
     searchQuery,
     setSearchQuery,
@@ -34,13 +37,11 @@ export const Home: React.FC = () => {
   } = usePagination(filteredAndSortedThreads, 10);
 
   const handleCreateThread = () => {
-    // TODO: Implement create thread functionality
-    console.log('Create new thread');
+    navigate('/create-challenge');
   };
 
   const handleViewThread = (threadId: string) => {
-    // TODO: Implement navigation to thread detail
-    console.log('View thread:', threadId);
+    navigate(`/thread/${threadId}`);
   };
 
   return (
@@ -211,36 +212,6 @@ export const Home: React.FC = () => {
                   </div>
                 </div>
               )}
-
-              {/* Quick Actions */}
-              <div className="bg-surface border border-border rounded-lg p-6">
-                <h3 className="text-lg font-semibold mb-4">Quick Actions</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <button
-                    onClick={handleCreateThread}
-                    className="btn-primary p-4 rounded-lg text-left"
-                  >
-                    <h4 className="font-semibold mb-2">Post New Challenge</h4>
-                    <p className="text-sm opacity-90">
-                      Share a drone challenge that needs innovative solutions
-                    </p>
-                  </button>
-                  
-                  <button className="p-4 border border-border rounded-lg hover:border-primary/30 text-left">
-                    <h4 className="font-semibold mb-2 text-warning">Browse Bounties</h4>
-                    <p className="text-sm text-muted">
-                      Find challenges with monetary rewards for solutions
-                    </p>
-                  </button>
-                  
-                  <button className="p-4 border border-border rounded-lg hover:border-primary/30 text-left">
-                    <h4 className="font-semibold mb-2 text-info">View Leaderboard</h4>
-                    <p className="text-sm text-muted">
-                      See top contributors and solution providers
-                    </p>
-                  </button>
-                </div>
-              </div>
 
               {/* Platform Stats */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
