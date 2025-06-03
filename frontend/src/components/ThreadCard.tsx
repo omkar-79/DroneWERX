@@ -12,7 +12,8 @@ import {
   Pin,
   Users,
   Zap,
-  Globe
+  Globe,
+  Bookmark
 } from 'lucide-react';
 import type { Thread } from '../types';
 import { 
@@ -145,7 +146,7 @@ export const ThreadCard: React.FC<ThreadCardProps> = ({
                 isFav ? 'text-warning bg-warning/20' : 'text-muted hover:text-warning hover:bg-warning/10'
               }`}
             >
-              <Star size={16} fill={isFav ? 'currentColor' : 'none'} />
+              <Bookmark size={16} fill={isFav ? 'currentColor' : 'none'} />
             </button>
           </div>
 
@@ -233,10 +234,6 @@ export const ThreadCard: React.FC<ThreadCardProps> = ({
 
             {/* Stats */}
             <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-1">
-                <Eye size={12} />
-                <span>{formatNumber(thread.views)}</span>
-              </div>
               <div className="flex items-center space-x-1">
                 <MessageCircle size={12} />
                 <span>{formatNumber(thread.commentCount)}</span>

@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { Home } from './pages/Home';
 import { CreateChallenge } from './pages/CreateChallenge';
 import { ThreadView } from './pages/ThreadView';
+import { Profile } from './pages/Profile';
 import './App.css';
 
 function App() {
@@ -18,7 +19,7 @@ function App() {
           <Route path="/categories/:categoryId" element={<div className="p-8 text-center">Category Detail Page Coming Soon</div>} />
           <Route path="/leaderboard" element={<div className="p-8 text-center">Leaderboard Page Coming Soon</div>} />
           <Route path="/bounties" element={<div className="p-8 text-center">Bounties Page Coming Soon</div>} />
-          <Route path="/profile" element={<div className="p-8 text-center">Profile Page Coming Soon</div>} />
+          <Route path="/profile/:userId" element={<Profile />} />
           <Route path="/settings" element={<div className="p-8 text-center">Settings Page Coming Soon</div>} />
           {/* Catch all route */}
           <Route path="*" element={<Navigate to="/home" replace />} />

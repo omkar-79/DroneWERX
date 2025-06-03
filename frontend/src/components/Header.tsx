@@ -32,12 +32,11 @@ export const Header: React.FC<HeaderProps> = ({
 
   // Mock current user
   const currentUser = {
-    username: 'warfighter_alpha',
-    fullName: 'Captain Sarah Mitchell',
-    avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b8cc?w=40&h=40&fit=crop&crop=face',
-    role: 'warfighter',
-    reputation: 2450,
-    isVerified: true
+    id: '4',
+    username: 'admin_moderator',
+    fullName: 'Colonel Lisa Chen',
+    avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=100&h=100&fit=crop&crop=face',
+    role: 'moderator' as const
   };
 
   // Close dropdown when clicking outside
@@ -138,9 +137,6 @@ export const Header: React.FC<HeaderProps> = ({
                     alt={currentUser.fullName}
                     className="w-8 h-8 rounded-full ring-2 ring-white/30"
                   />
-                  {currentUser.isVerified && (
-                    <Shield className="absolute -bottom-1 -right-1 w-4 h-4 text-blue-400 bg-white rounded-full p-0.5" />
-                  )}
                 </div>
                 <div className="hidden lg:block text-left">
                   <p className="text-sm font-medium text-gray-100">{currentUser.username}</p>
@@ -152,21 +148,15 @@ export const Header: React.FC<HeaderProps> = ({
               {/* Dropdown Menu */}
               {isUserMenuOpen && (
                 <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-xl py-2 z-50">
-                  <div className="px-4 py-3 border-b border-gray-100">
-                    <p className="font-semibold text-gray-900">{currentUser.fullName}</p>
-                    <p className="text-sm text-gray-600">@{currentUser.username}</p>
-                    <div className="flex items-center space-x-2 mt-2">
-                      <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full font-medium">
-                        {currentUser.reputation} reputation
-                      </span>
-                      <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full capitalize font-medium">
-                        {currentUser.role}
-                      </span>
+                  <div className="py-1 border-t border-border">
+                    <div className="px-4 py-2">
+                      <p className="text-sm font-medium text-secondary">{currentUser.fullName}</p>
+                      <p className="text-xs text-muted">@{currentUser.username}</p>
                     </div>
                   </div>
                   
                   <Link 
-                    to="/profile" 
+                    to={`/profile/${currentUser.id}`}
                     className="flex items-center space-x-3 px-4 py-3 hover:bg-gray-50 transition-colors text-gray-700"
                     onClick={closeUserMenu}
                   >

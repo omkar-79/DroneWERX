@@ -6,14 +6,17 @@ export interface User {
   fullName: string;
   avatar?: string;
   role: UserRole;
-  reputation: number;
-  badges: Badge[];
   joinDate: Date;
   location?: string;
   bio?: string;
   expertise: string[];
   isVerified: boolean;
   stats: UserStats;
+  // Military background fields (optional for warfighters)
+  serviceBranch?: string;
+  yearsOfService?: string;
+  deploymentHistory?: string;
+  securityClearance?: string;
 }
 
 export enum UserRole {
@@ -29,15 +32,6 @@ export interface UserStats {
   commentsPosted: number;
   upvotesReceived: number;
   solutionsAccepted: number;
-}
-
-export interface Badge {
-  id: string;
-  name: string;
-  description: string;
-  icon: string;
-  color: string;
-  rarity: 'common' | 'rare' | 'epic' | 'legendary';
 }
 
 // Thread Types

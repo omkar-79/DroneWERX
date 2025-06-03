@@ -4,7 +4,6 @@ import type {
   Solution, 
   Category, 
   Tag, 
-  Badge,
   Comment,
   Bounty,
   ThreadActivity
@@ -18,34 +17,6 @@ import {
   SolutionStatus
 } from '../types';
 
-// Mock Badges
-export const mockBadges: Badge[] = [
-  {
-    id: '1',
-    name: 'Problem Solver',
-    description: 'Solved 10 drone challenges',
-    icon: 'target',
-    color: 'var(--success-500)',
-    rarity: 'common'
-  },
-  {
-    id: '2',
-    name: 'Innovation Leader',
-    description: 'Posted 50 innovative solutions',
-    icon: 'lightbulb',
-    color: 'var(--warning-500)',
-    rarity: 'rare'
-  },
-  {
-    id: '3',
-    name: 'Combat Veteran',
-    description: 'Verified warfighter with field experience',
-    icon: 'shield',
-    color: 'var(--primary-600)',
-    rarity: 'epic'
-  }
-];
-
 // Mock Users
 export const mockUsers: User[] = [
   {
@@ -55,13 +26,15 @@ export const mockUsers: User[] = [
     fullName: 'Captain Sarah Mitchell',
     avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b8cc?w=100&h=100&fit=crop&crop=face',
     role: UserRole.WARFIGHTER,
-    reputation: 2450,
-    badges: [mockBadges[2]],
     joinDate: new Date('2023-01-15'),
     location: 'Fort Bragg, NC',
     bio: 'Special Operations drone pilot with 8 years of field experience in various theaters.',
     expertise: ['Combat Operations', 'Reconnaissance', 'Electronic Warfare'],
     isVerified: true,
+    serviceBranch: 'U.S. Army Special Operations',
+    yearsOfService: '8 Years',
+    deploymentHistory: 'Afghanistan, Iraq, Syria',
+    securityClearance: 'Secret',
     stats: {
       threadsCreated: 15,
       solutionsPosted: 3,
@@ -77,8 +50,6 @@ export const mockUsers: User[] = [
     fullName: 'Dr. Marcus Chen',
     avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face',
     role: UserRole.INNOVATOR,
-    reputation: 3200,
-    badges: [mockBadges[0], mockBadges[1]],
     joinDate: new Date('2022-11-20'),
     location: 'Austin, TX',
     bio: 'Aerospace engineer specializing in autonomous systems and AI-driven drone technologies.',
@@ -99,19 +70,41 @@ export const mockUsers: User[] = [
     fullName: 'Major John Rodriguez',
     avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face',
     role: UserRole.WARFIGHTER,
-    reputation: 1890,
-    badges: [mockBadges[2]],
     joinDate: new Date('2023-03-10'),
     location: 'MacDill AFB, FL',
     bio: 'Combat veteran leading drone operations in joint military exercises.',
     expertise: ['Squad Tactics', 'ISR Operations', 'Mission Planning'],
     isVerified: true,
+    serviceBranch: 'U.S. Air Force',
+    yearsOfService: '12 Years',
+    deploymentHistory: 'Iraq, Afghanistan, Eastern Europe',
+    securityClearance: 'Top Secret',
     stats: {
       threadsCreated: 12,
       solutionsPosted: 7,
       commentsPosted: 38,
       upvotesReceived: 145,
       solutionsAccepted: 3
+    }
+  },
+  {
+    id: '4',
+    username: 'admin_moderator',
+    email: 'moderator@usdrone.mil',
+    fullName: 'Colonel Lisa Chen',
+    avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=100&h=100&fit=crop&crop=face',
+    role: UserRole.MODERATOR,
+    joinDate: new Date('2022-08-15'),
+    location: 'Pentagon, VA',
+    bio: 'Senior moderator and administrator overseeing platform operations, solution validation, and user management. 15+ years experience in military technology assessment.',
+    expertise: ['Platform Management', 'Solution Validation', 'User Administration', 'Quality Assurance', 'Technology Assessment'],
+    isVerified: true,
+    stats: {
+      threadsCreated: 5,
+      solutionsPosted: 12,
+      commentsPosted: 189,
+      upvotesReceived: 456,
+      solutionsAccepted: 8
     }
   }
 ];

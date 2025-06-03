@@ -35,6 +35,7 @@ import { SolutionEditor } from '../components/SolutionEditor';
 import { SolutionStatusManager } from '../components/SolutionStatusManager';
 import { mockThreads, mockSolutions, mockComments, mockThreadActivities } from '../data/mockData';
 import type { Thread, Solution, Comment, ThreadActivity, TRLLevel, SolutionStatus } from '../types';
+import { UserRole } from '../types';
 
 export const ThreadView: React.FC = () => {
   const { threadId } = useParams<{ threadId: string }>();
@@ -47,8 +48,8 @@ export const ThreadView: React.FC = () => {
 
   // Mock current user for permissions
   const currentUser = { 
-    id: '1', // warfighter_alpha - thread author
-    role: 'warfighter' 
+    id: '4', // admin_moderator - has rights to manage solution status
+    role: 'moderator' 
   };
 
   // Find the thread
@@ -115,7 +116,7 @@ export const ThreadView: React.FC = () => {
   };
 
   const canManageStatus = (solution: Solution) => {
-    return currentUser.id === thread.authorId; // Only thread author can manage status
+    return currentUser.id === thread.authorId || currentUser.role === 'moderator'; // Thread author or moderator can manage status
   };
 
   const canEditSolution = (solution: Solution) => {
@@ -193,18 +194,23 @@ export const ThreadView: React.FC = () => {
                         alt={thread.author.fullName}
                         className="w-6 h-6 rounded-full"
                       />
-                      <span className="font-medium">{thread.author.username}</span>
-                      <span className="px-2 py-1 bg-primary/10 text-primary rounded text-xs capitalize">
-                        {thread.author.role}
-                      </span>
+                      <div className="flex flex-col">
+                        <h3 className="font-semibold text-primary">{thread.author.fullName}</h3>
+                        <p className="text-sm text-muted">@{thread.author.username}</p>
+                        <div className="flex items-center space-x-3 mt-1">
+                          <div className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            thread.author.role === UserRole.WARFIGHTER ? 'bg-primary/10 text-primary' :
+                            thread.author.role === UserRole.INNOVATOR ? 'bg-warning/10 text-warning' :
+                            'bg-success/10 text-success'
+                          }`}>
+                            {thread.author.role}
+                          </div>
+                        </div>
+                      </div>
                     </div>
                     <div className="flex items-center space-x-1">
                       <Calendar size={16} />
                       <span>{formatTimeAgo(thread.createdAt)}</span>
-                    </div>
-                    <div className="flex items-center space-x-1">
-                      <Eye size={16} />
-                      <span>{thread.views} views</span>
                     </div>
                     {thread.location && (
                       <div className="flex items-center space-x-1">
@@ -709,65 +715,6 @@ export const ThreadView: React.FC = () => {
 
           {/* Sidebar */}
           <div className="lg:col-span-1 space-y-6">
-            {/* Quick Stats */}
-            <div className="bg-surface border border-border rounded-xl p-6">
-              <h3 className="font-semibold text-primary mb-4">Quick Stats</h3>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted">Solutions</span>
-                  <span className="font-medium">{threadSolutions.length}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted">Comments</span>
-                  <span className="font-medium">{thread.commentCount}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted">Views</span>
-                  <span className="font-medium">{thread.views}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted">Upvotes</span>
-                  <span className="font-medium">{thread.upvotes}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Author Info */}
-            <div className="bg-surface border border-border rounded-xl p-6">
-              <h3 className="font-semibold text-primary mb-4">Author</h3>
-              <div className="flex items-center space-x-3 mb-4">
-                <img
-                  src={thread.author.avatar}
-                  alt={thread.author.fullName}
-                  className="w-12 h-12 rounded-full"
-                />
-                <div>
-                  <p className="font-medium text-primary">{thread.author.username}</p>
-                  <p className="text-sm text-muted capitalize">{thread.author.role}</p>
-                  <div className="flex items-center space-x-1 text-xs text-warning">
-                    <Star size={12} fill="currentColor" />
-                    <span>{thread.author.reputation}</span>
-                  </div>
-                </div>
-              </div>
-              <div className="space-y-2 text-sm">
-                <div className="flex items-center justify-between">
-                  <span className="text-muted">Threads Created</span>
-                  <span className="font-medium">{thread.author.stats.threadsCreated}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-muted">Solutions Posted</span>
-                  <span className="font-medium">{thread.author.stats.solutionsPosted}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-muted">Success Rate</span>
-                  <span className="font-medium text-success">
-                    {Math.round((thread.author.stats.solutionsAccepted / Math.max(thread.author.stats.solutionsPosted, 1)) * 100)}%
-                  </span>
-                </div>
-              </div>
-            </div>
-
             {/* Related Threads */}
             <div className="bg-surface border border-border rounded-xl p-6">
               <h3 className="font-semibold text-primary mb-4">Related Challenges</h3>
