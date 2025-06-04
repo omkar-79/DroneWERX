@@ -23,3 +23,6 @@ db_data/
 .vscode/
 .idea/
 *.swp
+
+# uploads
+**/uploads/
