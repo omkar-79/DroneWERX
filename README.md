@@ -2,6 +2,61 @@
 
 A secure, containerized discussion platform for the US Drone Association where warfighters post drone challenges and innovators provide solutions.
 
+---
+
+## 🏁 One-Click Setup
+
+Run the setup script to configure everything (env, DB, storage, etc):
+
+```sh
+bash scripts/dev-setup.sh
+```
+This will:
+- Check/install dependencies
+- Set up environment files
+- Run database migrations and seed data
+- Start all services via Docker Compose
+
+---
+
+## 🖼️ Media Management
+
+- All media (images, videos, documents) are stored in Minio object storage.
+- Media is organized by thread/solution and shown in a responsive gallery.
+- Thumbnails and previews are generated automatically.
+- Permissions: Only authors, moderators, and admins can delete attachments.
+- Secure download URLs and file type validation.
+- See [ROBUST_MEDIA_STORAGE.md](ROBUST_MEDIA_STORAGE.md) for full details.
+
+---
+
+## 👤 User Roles & Platform Features
+
+- **Warfighter**: Post challenges, accept solutions, award bounties, comment, upvote.
+- **Innovator**: Submit solutions, comment, upvote, build a public portfolio.
+- **Moderator/Admin**: Moderate content, manage users, view audit logs.
+- **All users**: View and search challenges, comment, upvote, bookmark, manage profile.
+
+### What You Can Do
+- Post and solve real-world drone challenges
+- Attach and manage media files
+- Award and win bounties
+- Track stats and contributions
+- Collaborate securely with role-based permissions
+
+---
+
+## 🚀 Features
+
+- Challenge and solution workflow
+- Media gallery with thumbnails and permissions
+- Bounty and reward system
+- Real-time stats and notifications
+- Role-based access control (Warfighter, Innovator, Moderator, Admin)
+- Secure, auditable, and scalable infrastructure
+
+---
+
 ## 🏗️ Architecture
 
 ```
@@ -27,7 +82,7 @@ A secure, containerized discussion platform for the US Drone Association where w
 ### 1. Clone and Setup
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/omkar-79/DroneWERX.git
 cd DroneWERX
 
 # Copy environment files
@@ -388,9 +443,7 @@ mkdir -p nginx/ssl
 4. Push to branch (`git push origin feature/amazing-feature`)
 5. Open Pull Request
 
-## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## 🆘 Support
 
