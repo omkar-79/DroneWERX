@@ -540,11 +540,18 @@ export const usersAPI = {
     return authenticatedFetch(`/users${queryString ? `?${queryString}` : ''}`);
   },
 
-  // New bookmark endpoints
-  addBookmark: async (userId: string, type: 'thread' | 'solution' | 'user', targetId: string) => {
-    return authenticatedFetch(`/users/${userId}/bookmark`, {
+  // Bookmark endpoints
+  addBookmark: async (userId: string, type: 'thread' | 'user', targetId: string) => {
+    return authenticatedFetch(`/users/${targetId}/bookmark`, {
       method: 'POST',
-      body: JSON.stringify({ type, targetId }),
+      body: JSON.stringify({ type }),
+    });
+  },
+
+  removeBookmark: async (userId: string, type: 'thread' | 'user', targetId: string) => {
+    return authenticatedFetch(`/users/${targetId}/bookmark`, {
+      method: 'DELETE',
+      body: JSON.stringify({ type }),
     });
   },
 

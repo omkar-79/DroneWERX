@@ -2,7 +2,7 @@
   /* ============================================ */
   /* GLOBAL COLOR SYSTEM - DroneWERX */
   /* ============================================ */
-  
+
   /* Primary Colors - Based on Navy Blue #0E2148 */
   --primary-50: #f0f4ff;
   --primary-100: #e1eafe;
@@ -70,11 +70,11 @@
   --gray-900: #111827;
   --gray-950: #030712;
 
-  /* Semantic Color Assignments */
+  /* Semantic Color Assignments - Light Mode Colors */
   --color-primary: var(--primary-900);
   --color-primary-hover: var(--primary-800);
   --color-primary-light: var(--primary-100);
-  
+
   --color-secondary: var(--secondary-600);
   --color-secondary-hover: var(--secondary-700);
   --color-secondary-light: var(--secondary-100);
@@ -99,7 +99,7 @@
   /* ============================================ */
   /* FONT SYSTEM */
   /* ============================================ */
-  
+
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
@@ -111,28 +111,6 @@
   /* Apply colors */
   color: var(--color-text-primary);
   background-color: var(--color-background);
-}
-
-/* Dark Mode Support */
-@media (prefers-color-scheme: dark) {
-  :root {
-    /* Dark mode semantic assignments */
-    --color-background: var(--gray-900);
-    --color-background-alt: var(--gray-800);
-    --color-surface: var(--gray-800);
-    --color-surface-hover: var(--gray-700);
-
-    --color-text-primary: var(--gray-50);
-    --color-text-secondary: var(--gray-300);
-    --color-text-muted: var(--gray-400);
-
-    --color-border: var(--gray-700);
-    --color-shadow: rgba(0, 0, 0, 0.3);
-    --color-shadow-lg: rgba(0, 0, 0, 0.5);
-
-    color: var(--color-text-primary);
-    background-color: var(--color-background);
-  }
 }
 
 /* ============================================ */
@@ -153,7 +131,12 @@ body {
   color: var(--color-text-primary);
 }
 
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   color: var(--color-text-primary);
   margin: 0;
 }
@@ -216,7 +199,9 @@ button.btn-primary:hover {
 }
 
 /* Input Styles */
-input, textarea, select {
+input,
+textarea,
+select {
   border: 1px solid var(--color-border);
   border-radius: 6px;
   padding: 0.5em 0.75em;
@@ -226,28 +211,75 @@ input, textarea, select {
   transition: border-color 0.25s ease;
 }
 
-input:focus, textarea:focus, select:focus {
+input:focus,
+textarea:focus,
+select:focus {
   outline: none;
   border-color: var(--color-border-focus);
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
 /* Utility Classes for Colors */
-.text-primary { color: var(--color-primary); }
-.text-secondary { color: var(--color-text-secondary); }
-.text-muted { color: var(--color-text-muted); }
-.text-success { color: var(--success-500); }
-.text-warning { color: var(--warning-500); }
-.text-error { color: var(--error-500); }
-.text-info { color: var(--info-500); }
+.text-primary {
+  color: var(--color-primary);
+}
 
-.bg-primary { background-color: var(--color-primary); }
-.bg-surface { background-color: var(--color-surface); }
-.bg-surface-hover { background-color: var(--color-surface-hover); }
-.bg-success { background-color: var(--success-500); }
-.bg-warning { background-color: var(--warning-500); }
-.bg-error { background-color: var(--error-500); }
-.bg-info { background-color: var(--info-500); }
+.text-secondary {
+  color: var(--color-text-secondary);
+}
 
-.border-primary { border-color: var(--color-border-focus); }
-.border-error { border-color: var(--color-border-error); }
+.text-muted {
+  color: var(--color-text-muted);
+}
+
+.text-success {
+  color: var(--success-500);
+}
+
+.text-warning {
+  color: var(--warning-500);
+}
+
+.text-error {
+  color: var(--error-500);
+}
+
+.text-info {
+  color: var(--info-500);
+}
+
+.bg-primary {
+  background-color: var(--color-primary);
+}
+
+.bg-surface {
+  background-color: var(--color-surface);
+}
+
+.bg-surface-hover {
+  background-color: var(--color-surface-hover);
+}
+
+.bg-success {
+  background-color: var(--success-500);
+}
+
+.bg-warning {
+  background-color: var(--warning-500);
+}
+
+.bg-error {
+  background-color: var(--error-500);
+}
+
+.bg-info {
+  background-color: var(--info-500);
+}
+
+.border-primary {
+  border-color: var(--color-border-focus);
+}
+
+.border-error {
+  border-color: var(--color-border-error);
+}

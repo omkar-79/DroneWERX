@@ -34,6 +34,7 @@ import {
 import { Header, SolutionEditor, SolutionStatusManager, MediaGallery } from '../components';
 import { useThread, useSolutions, useComments, useActivities } from '../hooks';
 import { useAuth } from '../contexts/AuthContext';
+import { useBookmarks } from '../contexts/BookmarkContext';
 import type { Thread, Solution, Comment, ThreadActivity, TRLLevel, SolutionStatus } from '../types';
 import { UserRole, Priority } from '../types';
 import { threadsAPI } from '../services/api';
@@ -43,6 +44,7 @@ export const ThreadView: React.FC = () => {
   const { id: threadId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user: currentUser } = useAuth();
+  const { addBookmark, removeBookmark, isBookmarked } = useBookmarks();
   const [activeTab, setActiveTab] = useState<'solutions' | 'activity' | 'details'>('solutions');
   const [newComment, setNewComment] = useState('');
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
@@ -229,11 +231,13 @@ export const ThreadView: React.FC = () => {
     }
 
     try {
-      await usersAPI.addBookmark(currentUser.id, 'thread', thread.id);
-      // TODO: Update local bookmark state
-      console.log('Thread bookmarked successfully');
+      if (isBookmarked('thread', thread.id)) {
+        await removeBookmark('thread', thread.id);
+      } else {
+        await addBookmark('thread', thread.id);
+      }
     } catch (error) {
-      console.error('Failed to bookmark thread:', error);
+      console.error('Failed to toggle bookmark:', error);
       // TODO: Show error toast to user
     }
   };
@@ -517,10 +521,13 @@ export const ThreadView: React.FC = () => {
                   </button>
                   <button
                     onClick={handleBookmark}
-                    className="p-2 rounded-lg hover:bg-surface-hover transition-colors"
-                    title="Bookmark this thread"
+                    className={`p-2 rounded-lg transition-colors ${isBookmarked('thread', thread.id)
+                        ? 'text-warning bg-warning/20'
+                        : 'hover:bg-surface-hover text-muted hover:text-warning'
+                      }`}
+                    title={isBookmarked('thread', thread.id) ? 'Remove bookmark' : 'Bookmark this thread'}
                   >
-                    <Bookmark size={16} />
+                    <Bookmark size={16} fill={isBookmarked('thread', thread.id) ? 'currentColor' : 'none'} />
                   </button>
                   <button className="p-2 rounded-lg hover:bg-surface-hover transition-colors">
                     <Share2 size={16} />

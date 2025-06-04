@@ -157,6 +157,11 @@ export interface Solution {
     trlLevel?: TRLLevel;
   };
   comments: Comment[];
+  thread: {
+    id: string;
+    title: string;
+    status: ThreadStatus;
+  };
 }
 
 export interface TechnicalSpecification {

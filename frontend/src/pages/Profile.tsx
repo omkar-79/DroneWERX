@@ -40,6 +40,7 @@ import {
 } from 'lucide-react';
 import { Header } from '../components';
 import { useAuth } from '../contexts/AuthContext';
+import { useBookmarks } from '../contexts/BookmarkContext';
 import { useThreads } from '../hooks';
 import { UserRole } from '../types';
 import { formatTimeAgo, formatDate } from '../utils';
@@ -49,9 +50,10 @@ import { authAPI, usersAPI } from '../services/api';
 
 export const Profile: React.FC = () => {
   const { user: currentUser, logout } = useAuth();
+  const { bookmarkedThreads, bookmarkedUsers } = useBookmarks();
   const { id: userId } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  
+
   // Determine if viewing own profile or another user's profile - MOVED UP
   const isOwnProfile = !userId || userId === currentUser?.id;
   const profileUserId = isOwnProfile ? currentUser?.id : userId;
@@ -76,13 +78,8 @@ export const Profile: React.FC = () => {
   const [userStats, setUserStats] = useState<any>(null);
   const [userBadges, setUserBadges] = useState<any[]>([]);
   const [userActivities, setUserActivities] = useState<any[]>([]);
-  const [userBookmarks, setUserBookmarks] = useState<any>({ threads: [], users: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  // Mock data for features not yet implemented - REMOVED since we now have APIs
-  const bookmarkedUsers: User[] = userBookmarks.users || [];
-  const bookmarkedThreads: Thread[] = userBookmarks.threads || [];
 
   // Load user data
   useEffect(() => {
@@ -91,7 +88,7 @@ export const Profile: React.FC = () => {
         setLoading(false);
         return;
       }
-      
+
       try {
         setLoading(true);
         setError(null);
@@ -113,23 +110,14 @@ export const Profile: React.FC = () => {
           usersAPI.getUserActivities(profileUserId, { page: 1, limit: 10 }),
         ];
 
-        // Only fetch bookmarks for own profile (requires authentication)
-        if (isOwnProfile) {
-          promises.push(usersAPI.getUserBookmarks(profileUserId));
-        }
-
         const results = await Promise.all(promises);
-        const [threadsResponse, solutionsResponse, statsResponse, badgesResponse, activitiesResponse, bookmarksResponse] = results;
+        const [threadsResponse, solutionsResponse, statsResponse, badgesResponse, activitiesResponse] = results;
 
         setUserThreads(threadsResponse.threads || []);
         setUserSolutions(solutionsResponse.solutions || []);
         setUserStats(statsResponse.stats || {});
         setUserBadges(badgesResponse.badges || []);
         setUserActivities(activitiesResponse.activities || []);
-        
-        if (bookmarksResponse) {
-          setUserBookmarks(bookmarksResponse.bookmarks || { threads: [], users: [] });
-        }
       } catch (error) {
         console.error('Failed to load user data:', error);
         setError('Failed to load user profile');
@@ -144,7 +132,7 @@ export const Profile: React.FC = () => {
   // Handle follow user
   const handleFollowUser = async () => {
     if (!profileUserId || isOwnProfile) return;
-    
+
     try {
       await usersAPI.followUser(profileUserId);
       // You could update UI state here to show followed status
@@ -173,7 +161,7 @@ export const Profile: React.FC = () => {
       <div className="min-h-screen bg-background">
         <Header
           searchQuery=""
-          onSearchChange={() => {}}
+          onSearchChange={() => { }}
           onCreateThread={() => navigate('/create-challenge')}
         />
         <div className="max-w-7xl mx-auto p-6">
@@ -194,7 +182,7 @@ export const Profile: React.FC = () => {
       <div className="min-h-screen bg-background">
         <Header
           searchQuery=""
-          onSearchChange={() => {}}
+          onSearchChange={() => { }}
           onCreateThread={() => navigate('/create-challenge')}
         />
         <div className="max-w-7xl mx-auto p-6">
@@ -220,7 +208,7 @@ export const Profile: React.FC = () => {
       <div className="min-h-screen bg-background">
         <Header
           searchQuery=""
-          onSearchChange={() => {}}
+          onSearchChange={() => { }}
           onCreateThread={() => navigate('/create-challenge')}
         />
         <div className="max-w-7xl mx-auto p-6">
@@ -273,7 +261,7 @@ export const Profile: React.FC = () => {
 
   const handleSaveProfile = async () => {
     if (!profileUser || !isOwnProfile) return;
-    
+
     try {
       const response = await usersAPI.updateUserProfile(profileUser.id, editForm);
       setProfileUser(response.user);
@@ -523,7 +511,7 @@ export const Profile: React.FC = () => {
     <div className="min-h-screen bg-background">
       <Header
         searchQuery=""
-        onSearchChange={() => {}}
+        onSearchChange={() => { }}
         onCreateThread={() => navigate('/create-challenge')}
       />
 
@@ -575,7 +563,7 @@ export const Profile: React.FC = () => {
               {/* Action Buttons */}
               <div className="flex space-x-2 mt-6">
                 {isOwnProfile ? (
-                  <button 
+                  <button
                     onClick={() => setIsEditModalOpen(true)}
                     className="flex-1 flex items-center justify-center space-x-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-hover transition-colors"
                   >
@@ -626,21 +614,19 @@ export const Profile: React.FC = () => {
               <nav className="flex space-x-8">
                 <button
                   onClick={() => setActiveTab('overview')}
-                  className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                    activeTab === 'overview'
-                      ? 'border-primary text-primary'
-                      : 'border-transparent text-muted hover:text-secondary'
-                  }`}
+                  className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'overview'
+                    ? 'border-primary text-primary'
+                    : 'border-transparent text-muted hover:text-secondary'
+                    }`}
                 >
                   Overview
                 </button>
                 <button
                   onClick={() => setActiveTab('activity')}
-                  className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                    activeTab === 'activity'
-                      ? 'border-primary text-primary'
-                      : 'border-transparent text-muted hover:text-secondary'
-                  }`}
+                  className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'activity'
+                    ? 'border-primary text-primary'
+                    : 'border-transparent text-muted hover:text-secondary'
+                    }`}
                 >
                   Activity
                 </button>
@@ -648,21 +634,19 @@ export const Profile: React.FC = () => {
                   <>
                     <button
                       onClick={() => setActiveTab('portfolio')}
-                      className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                        activeTab === 'portfolio'
-                          ? 'border-primary text-primary'
-                          : 'border-transparent text-muted hover:text-secondary'
-                      }`}
+                      className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'portfolio'
+                        ? 'border-primary text-primary'
+                        : 'border-transparent text-muted hover:text-secondary'
+                        }`}
                     >
                       Portfolio
                     </button>
                     <button
                       onClick={() => setActiveTab('stats')}
-                      className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                        activeTab === 'stats'
-                          ? 'border-primary text-primary'
-                          : 'border-transparent text-muted hover:text-secondary'
-                      }`}
+                      className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'stats'
+                        ? 'border-primary text-primary'
+                        : 'border-transparent text-muted hover:text-secondary'
+                        }`}
                     >
                       Statistics
                     </button>
@@ -671,11 +655,10 @@ export const Profile: React.FC = () => {
                 {isOwnProfile && (
                   <button
                     onClick={() => setActiveTab('bookmarks')}
-                    className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                      activeTab === 'bookmarks'
-                        ? 'border-primary text-primary'
-                        : 'border-transparent text-muted hover:text-secondary'
-                    }`}
+                    className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'bookmarks'
+                      ? 'border-primary text-primary'
+                      : 'border-transparent text-muted hover:text-secondary'
+                      }`}
                   >
                     Bookmarks
                   </button>
@@ -709,11 +692,10 @@ export const Profile: React.FC = () => {
                   <div className="space-y-3">
                     {userActivities.map(activity => (
                       <div key={activity.id} className="flex items-start space-x-3 p-3 bg-background-alt rounded-lg">
-                        <div className={`w-3 h-3 rounded-full mt-2 ${
-                          activity.type === 'solution_accepted' ? 'bg-success' :
+                        <div className={`w-3 h-3 rounded-full mt-2 ${activity.type === 'solution_accepted' ? 'bg-success' :
                           activity.type === 'bounty_awarded' ? 'bg-warning' :
-                          'bg-info'
-                        }`} />
+                            'bg-info'
+                          }`} />
                         <div className="flex-1">
                           <p className="text-sm">{activity.description}</p>
                           <p className="text-xs text-muted mt-1">{formatTimeAgo(activity.timestamp)}</p>
@@ -733,11 +715,10 @@ export const Profile: React.FC = () => {
                     <h3 className="font-semibold text-primary mb-4">Solutions Contributed</h3>
                     <div className="space-y-3">
                       {userSolutions.map(solution => {
-                        const relatedThread = userThreads.find(t => t.id === solution.threadId);
                         return (
                           <Link
                             key={solution.id}
-                            to={`/thread/${solution.threadId}`}
+                            to={`/thread/${solution.thread.id}`}
                             className="block p-3 bg-background-alt rounded-lg hover:bg-surface-hover transition-colors"
                           >
                             <div className="flex items-center justify-between mb-2">
@@ -750,11 +731,9 @@ export const Profile: React.FC = () => {
                                 <ExternalLink size={10} className="text-muted" />
                               </div>
                             </div>
-                            {relatedThread && (
-                              <p className="text-xs text-info mb-1">→ {relatedThread.title}</p>
-                            )}
-                            <p className="text-xs text-muted line-clamp-2" 
-                               dangerouslySetInnerHTML={{ __html: solution.content }} />
+                            <p className="text-xs text-info mb-1">→ {solution.thread.title}</p>
+                            <p className="text-xs text-muted line-clamp-2"
+                              dangerouslySetInnerHTML={{ __html: solution.content }} />
                           </Link>
                         );
                       })}
@@ -834,8 +813,8 @@ export const Profile: React.FC = () => {
                               {relatedThread && (
                                 <p className="text-xs text-info mb-1">→ {relatedThread.title}</p>
                               )}
-                              <p className="text-xs text-muted line-clamp-2" 
-                                 dangerouslySetInnerHTML={{ __html: solution.content }} />
+                              <p className="text-xs text-muted line-clamp-2"
+                                dangerouslySetInnerHTML={{ __html: solution.content }} />
                             </Link>
                           );
                         })}
@@ -852,9 +831,9 @@ export const Profile: React.FC = () => {
                   <h3 className="font-semibold text-primary mb-4 flex items-center space-x-2">
                     <BarChart3 size={20} />
                     <span>
-                      {profileUser.role === UserRole.WARFIGHTER ? 'Challenge Metrics' : 
-                       profileUser.role === UserRole.INNOVATOR ? 'Solution Metrics' : 
-                       'Contribution Metrics'}
+                      {profileUser.role === UserRole.WARFIGHTER ? 'Challenge Metrics' :
+                        profileUser.role === UserRole.INNOVATOR ? 'Solution Metrics' :
+                          'Contribution Metrics'}
                     </span>
                   </h3>
                   <div className="space-y-4">
@@ -878,7 +857,7 @@ export const Profile: React.FC = () => {
                         </div>
                       </>
                     )}
-                    
+
                     {profileUser.role === UserRole.INNOVATOR && (
                       <>
                         <div className="flex items-center justify-between">
@@ -931,96 +910,11 @@ export const Profile: React.FC = () => {
 
             {activeTab === 'bookmarks' && isOwnProfile && (
               <div className="space-y-6">
-                {/* For Warfighters - Show both People and Threads */}
-                {profileUser.role === UserRole.WARFIGHTER ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Bookmarked People */}
-                    <div className="bg-surface border border-border rounded-xl p-6">
-                      <h3 className="font-semibold text-primary mb-4 flex items-center space-x-2">
-                        <Users size={20} />
-                        <span>Bookmarked People</span>
-                      </h3>
-                      <div className="space-y-4">
-                        {bookmarkedUsers.map(user => (
-                          <Link
-                            key={user.id}
-                            to={`/profile/${user.id}`}
-                            className="flex items-center space-x-3 p-3 bg-background-alt rounded-lg hover:bg-surface-hover transition-colors"
-                          >
-                            <img
-                              src={user.avatar}
-                              alt={user.fullName}
-                              className="w-10 h-10 rounded-full"
-                            />
-                            <div className="flex-1">
-                              <h4 className="font-medium text-primary text-sm">{user.fullName}</h4>
-                              <p className="text-xs text-muted">@{user.username}</p>
-                              <div className="flex items-center space-x-1 mt-1">
-                                <div className={`inline-flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium ${getRoleColor(user.role)}`}>
-                                  {getRoleIcon(user.role)}
-                                  <span className="capitalize">{user.role}</span>
-                                </div>
-                              </div>
-                            </div>
-                            <ExternalLink size={14} className="text-muted" />
-                          </Link>
-                        ))}
-                        {bookmarkedUsers.length === 0 && (
-                          <div className="text-center py-6">
-                            <UserPlus size={32} className="text-muted mx-auto mb-2" />
-                            <p className="text-sm text-muted">No bookmarked people</p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Bookmarked Threads */}
-                    <div className="bg-surface border border-border rounded-xl p-6">
-                      <h3 className="font-semibold text-primary mb-4 flex items-center space-x-2">
-                        <FileText size={20} />
-                        <span>Bookmarked Threads</span>
-                      </h3>
-                      <div className="space-y-4">
-                        {bookmarkedThreads.map(thread => (
-                          <Link
-                            key={thread.id}
-                            to={`/thread/${thread.id}`}
-                            className="block p-3 bg-background-alt rounded-lg hover:bg-surface-hover transition-colors"
-                          >
-                            <h4 className="font-medium text-primary text-sm line-clamp-2 mb-2">{thread.title}</h4>
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center space-x-3 text-xs text-muted">
-                                <span>{thread.solutionCount} solutions</span>
-                                <span>{thread.upvotes} upvotes</span>
-                              </div>
-                              <div className="flex items-center space-x-1">
-                                <span className={`px-2 py-1 rounded text-xs font-medium ${
-                                  thread.priority === Priority.CRITICAL ? 'bg-error/10 text-error' :
-                                  thread.priority === Priority.HIGH ? 'bg-warning/10 text-warning' :
-                                  thread.priority === Priority.MEDIUM ? 'bg-info/10 text-info' :
-                                  'bg-success/10 text-success'
-                                }`}>
-                                  {thread.priority.toUpperCase()}
-                                </span>
-                                <ExternalLink size={12} className="text-muted" />
-                              </div>
-                            </div>
-                          </Link>
-                        ))}
-                        {bookmarkedThreads.length === 0 && (
-                          <div className="text-center py-6">
-                            <Bookmark size={32} className="text-muted mx-auto mb-2" />
-                            <p className="text-sm text-muted">No bookmarked threads</p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  /* For Other Roles - Show only People */
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Bookmarked People */}
                   <div className="bg-surface border border-border rounded-xl p-6">
                     <h3 className="font-semibold text-primary mb-4 flex items-center space-x-2">
-                      <Bookmark size={20} />
+                      <Users size={20} />
                       <span>Bookmarked People</span>
                     </h3>
                     <div className="space-y-4">
@@ -1028,42 +922,76 @@ export const Profile: React.FC = () => {
                         <Link
                           key={user.id}
                           to={`/profile/${user.id}`}
-                          className="flex items-center space-x-4 p-4 bg-background-alt rounded-lg hover:bg-surface-hover transition-colors"
+                          className="flex items-center space-x-3 p-3 bg-background-alt rounded-lg hover:bg-surface-hover transition-colors"
                         >
                           <img
                             src={user.avatar}
                             alt={user.fullName}
-                            className="w-12 h-12 rounded-full"
+                            className="w-10 h-10 rounded-full"
                           />
                           <div className="flex-1">
-                            <h4 className="font-medium text-primary">{user.fullName}</h4>
-                            <p className="text-sm text-muted">@{user.username}</p>
-                            <div className="flex items-center space-x-2 mt-1">
+                            <h4 className="font-medium text-primary text-sm">{user.fullName}</h4>
+                            <p className="text-xs text-muted">@{user.username}</p>
+                            <div className="flex items-center space-x-1 mt-1">
                               <div className={`inline-flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium ${getRoleColor(user.role)}`}>
                                 {getRoleIcon(user.role)}
                                 <span className="capitalize">{user.role}</span>
                               </div>
                             </div>
                           </div>
-                          <div className="text-right">
-                            <div className="flex items-center space-x-4 text-xs text-muted">
-                              <span>{user.stats.threadsCreated} threads</span>
-                              <span>{user.stats.solutionsPosted} solutions</span>
-                            </div>
-                          </div>
-                          <ExternalLink size={16} className="text-muted" />
+                          <ExternalLink size={14} className="text-muted" />
                         </Link>
                       ))}
                       {bookmarkedUsers.length === 0 && (
-                        <div className="text-center py-8">
-                          <UserPlus size={48} className="text-muted mx-auto mb-4" />
-                          <p className="text-muted">No bookmarked people yet</p>
-                          <p className="text-sm text-muted mt-1">Bookmark interesting people to see them here</p>
+                        <div className="text-center py-6">
+                          <UserPlus size={32} className="text-muted mx-auto mb-2" />
+                          <p className="text-sm text-muted">No bookmarked people</p>
                         </div>
                       )}
                     </div>
                   </div>
-                )}
+
+                  {/* Bookmarked Threads */}
+                  <div className="bg-surface border border-border rounded-xl p-6">
+                    <h3 className="font-semibold text-primary mb-4 flex items-center space-x-2">
+                      <FileText size={20} />
+                      <span>Bookmarked Threads</span>
+                    </h3>
+                    <div className="space-y-4">
+                      {bookmarkedThreads.map(thread => (
+                        <Link
+                          key={thread.id}
+                          to={`/thread/${thread.id}`}
+                          className="block p-3 bg-background-alt rounded-lg hover:bg-surface-hover transition-colors"
+                        >
+                          <h4 className="font-medium text-primary text-sm line-clamp-2 mb-2">{thread.title}</h4>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-3 text-xs text-muted">
+                              <span>{thread.solutionCount} solutions</span>
+                              <span>{thread.upvotes} upvotes</span>
+                            </div>
+                            <div className="flex items-center space-x-1">
+                              <span className={`px-2 py-1 rounded text-xs font-medium ${thread.priority === Priority.CRITICAL ? 'bg-error/10 text-error' :
+                                thread.priority === Priority.HIGH ? 'bg-warning/10 text-warning' :
+                                  thread.priority === Priority.MEDIUM ? 'bg-info/10 text-info' :
+                                    'bg-success/10 text-success'
+                                }`}>
+                                {thread.priority.toUpperCase()}
+                              </span>
+                              <ExternalLink size={12} className="text-muted" />
+                            </div>
+                          </div>
+                        </Link>
+                      ))}
+                      {bookmarkedThreads.length === 0 && (
+                        <div className="text-center py-6">
+                          <Bookmark size={32} className="text-muted mx-auto mb-2" />
+                          <p className="text-sm text-muted">No bookmarked threads</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
           </div>

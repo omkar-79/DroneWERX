@@ -26,7 +26,7 @@ import {
   getStatusColor,
   getTRLColor
 } from '../../utils';
-import { useFavorites } from '../../hooks';
+import { useBookmarks } from '../../contexts/BookmarkContext';
 
 interface ThreadCardProps {
   thread: Thread;
@@ -34,17 +34,25 @@ interface ThreadCardProps {
   compact?: boolean;
 }
 
-export const ThreadCard: React.FC<ThreadCardProps> = ({ 
-  thread, 
-  onView, 
-  compact = false 
+export const ThreadCard: React.FC<ThreadCardProps> = ({
+  thread,
+  onView,
+  compact = false
 }) => {
-  const { toggleFavorite, isFavorite } = useFavorites();
-  const isFav = isFavorite(thread.id);
+  const { addBookmark, removeBookmark, isBookmarked } = useBookmarks();
+  const isBookmarkedThread = isBookmarked('thread', thread.id);
 
-  const handleFavorite = (e: React.MouseEvent) => {
+  const handleBookmark = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    toggleFavorite(thread.id);
+    try {
+      if (isBookmarkedThread) {
+        await removeBookmark('thread', thread.id);
+      } else {
+        await addBookmark('thread', thread.id);
+      }
+    } catch (error) {
+      console.error('Failed to toggle bookmark:', error);
+    }
   };
 
   const handleClick = () => {
@@ -54,9 +62,8 @@ export const ThreadCard: React.FC<ThreadCardProps> = ({
   return (
     <div
       onClick={handleClick}
-      className={`bg-surface border border-border rounded-xl hover:border-primary/30 hover:shadow-lg transition-all cursor-pointer relative ${
-        thread.isSticky ? 'ring-2 ring-primary/20 bg-gradient-to-r from-primary/5 to-transparent' : ''
-      } ${compact ? 'p-4' : 'p-6'}`}
+      className={`bg-surface border border-border rounded-xl hover:border-primary/30 hover:shadow-lg transition-all cursor-pointer relative ${thread.isSticky ? 'ring-2 ring-primary/20 bg-gradient-to-r from-primary/5 to-transparent' : ''
+        } ${compact ? 'p-4' : 'p-6'}`}
     >
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1 min-w-0">
@@ -64,18 +71,17 @@ export const ThreadCard: React.FC<ThreadCardProps> = ({
           <div className="flex items-start justify-between mb-3">
             <div className="flex-1 min-w-0">
               <div className="flex items-center space-x-2 mb-3">
-                <h3 className={`font-bold text-primary hover:text-primary-hover ${
-                  compact ? 'text-base' : 'text-lg'
-                } line-clamp-2 leading-tight`}>
+                <h3 className={`font-bold text-primary hover:text-primary-hover ${compact ? 'text-base' : 'text-lg'
+                  } line-clamp-2 leading-tight`}>
                   {thread.title}
                 </h3>
               </div>
-              
+
               {/* Status and Priority Badges */}
               <div className="flex items-center flex-wrap gap-2 mb-4">
                 <span
                   className="inline-flex items-center px-3 py-1.5 text-xs font-semibold rounded-lg border shadow-sm"
-                  style={{ 
+                  style={{
                     backgroundColor: `${getStatusColor(thread.status)}15`,
                     color: getStatusColor(thread.status),
                     borderColor: `${getStatusColor(thread.status)}30`
@@ -83,10 +89,10 @@ export const ThreadCard: React.FC<ThreadCardProps> = ({
                 >
                   {thread.status.replace('_', ' ').toUpperCase()}
                 </span>
-                
+
                 <span
                   className="inline-flex items-center px-3 py-1.5 text-xs font-semibold rounded-lg border shadow-sm"
-                  style={{ 
+                  style={{
                     backgroundColor: `${getPriorityColor(thread.priority)}15`,
                     color: getPriorityColor(thread.priority),
                     borderColor: `${getPriorityColor(thread.priority)}30`
@@ -97,7 +103,7 @@ export const ThreadCard: React.FC<ThreadCardProps> = ({
 
                 <span
                   className="inline-flex items-center px-3 py-1.5 text-xs font-semibold rounded-lg border shadow-sm"
-                  style={{ 
+                  style={{
                     backgroundColor: `${getUrgencyColor(thread.urgency)}15`,
                     color: getUrgencyColor(thread.urgency),
                     borderColor: `${getUrgencyColor(thread.urgency)}30`
@@ -109,7 +115,7 @@ export const ThreadCard: React.FC<ThreadCardProps> = ({
                 {thread.trlLevel && (
                   <span
                     className="inline-flex items-center space-x-1 px-3 py-1.5 text-xs font-semibold rounded-lg border shadow-sm"
-                    style={{ 
+                    style={{
                       backgroundColor: `${getTRLColor(thread.trlLevel)}15`,
                       color: getTRLColor(thread.trlLevel),
                       borderColor: `${getTRLColor(thread.trlLevel)}30`
@@ -136,14 +142,13 @@ export const ThreadCard: React.FC<ThreadCardProps> = ({
               </div>
             </div>
 
-            {/* Favorite Button */}
+            {/* Bookmark Button */}
             <button
-              onClick={handleFavorite}
-              className={`p-2.5 rounded-lg transition-all ${
-                isFav ? 'text-warning bg-warning/20' : 'text-muted hover:text-warning hover:bg-warning/10'
-              }`}
+              onClick={handleBookmark}
+              className={`p-2.5 rounded-lg transition-all ${isBookmarkedThread ? 'text-warning bg-warning/20' : 'text-muted hover:text-warning hover:bg-warning/10'
+                }`}
             >
-              <Bookmark size={16} fill={isFav ? 'currentColor' : 'none'} />
+              <Bookmark size={16} fill={isBookmarkedThread ? 'currentColor' : 'none'} />
             </button>
           </div>
 
@@ -160,7 +165,7 @@ export const ThreadCard: React.FC<ThreadCardProps> = ({
               {thread.category.name}
             </span>
             {thread.tags.slice(0, 3).map(tag => (
-              <span 
+              <span
                 key={tag.id}
                 className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg border border-primary/20 bg-primary/10 text-primary shadow-sm hover:shadow-md transition-all cursor-pointer"
               >
@@ -216,11 +221,10 @@ export const ThreadCard: React.FC<ThreadCardProps> = ({
                   {thread.isAnonymous ? 'Anonymous' : thread.author.username}
                 </span>
                 {!thread.isAnonymous && (
-                  <div className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    thread.author.role === UserRole.WARFIGHTER ? 'bg-primary/10 text-primary' :
-                    thread.author.role === UserRole.INNOVATOR ? 'bg-warning/10 text-warning' :
-                    'bg-success/10 text-success'
-                  }`}>
+                  <div className={`px-2 py-1 rounded-full text-xs font-medium ${thread.author.role === UserRole.WARFIGHTER ? 'bg-primary/10 text-primary' :
+                      thread.author.role === UserRole.INNOVATOR ? 'bg-warning/10 text-warning' :
+                        'bg-success/10 text-success'
+                    }`}>
                     {thread.author.role}
                   </div>
                 )}
