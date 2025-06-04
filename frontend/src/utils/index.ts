@@ -49,67 +49,67 @@ export const formatCurrency = (amount: number, currency: string = 'USD'): string
 export const getPriorityColor = (priority: Priority): string => {
   switch (priority) {
     case Priority.LOW:
-      return 'bg-green-100 text-green-800';
+      return '#10b981'; // green
     case Priority.MEDIUM:
-      return 'bg-blue-100 text-blue-800';
+      return '#3b82f6'; // blue
     case Priority.HIGH:
-      return 'bg-orange-100 text-orange-800';
+      return '#f59e0b'; // orange
     case Priority.CRITICAL:
-      return 'bg-red-100 text-red-800';
+      return '#ef4444'; // red
     default:
-      return 'bg-gray-100 text-gray-800';
+      return '#6b7280'; // gray
   }
 };
 
 export const getUrgencyColor = (urgency: Urgency): string => {
   switch (urgency) {
     case Urgency.ROUTINE:
-      return 'bg-gray-100 text-gray-800';
+      return '#6b7280'; // gray
     case Urgency.PRIORITY:
-      return 'bg-blue-100 text-blue-800';
+      return '#3b82f6'; // blue
     case Urgency.IMMEDIATE:
-      return 'bg-orange-100 text-orange-800';
+      return '#f59e0b'; // orange
     case Urgency.FLASH:
-      return 'bg-red-100 text-red-800';
+      return '#ef4444'; // red
     default:
-      return 'bg-gray-100 text-gray-800';
+      return '#6b7280'; // gray
   }
 };
 
 export const getStatusColor = (status: ThreadStatus): string => {
   switch (status) {
-    case 'open':
-      return 'var(--primary-500)';
-    case 'in_progress':
-      return 'var(--warning-500)';
-    case 'solved':
-      return 'var(--success-500)';
-    case 'closed':
-      return 'var(--gray-500)';
-    case 'archived':
-      return 'var(--gray-400)';
+    case ThreadStatus.OPEN:
+      return '#3b82f6'; // blue
+    case ThreadStatus.IN_PROGRESS:
+      return '#f59e0b'; // amber
+    case ThreadStatus.SOLVED:
+      return '#10b981'; // emerald
+    case ThreadStatus.CLOSED:
+      return '#6b7280'; // gray
+    case ThreadStatus.ARCHIVED:
+      return '#9ca3af'; // gray
     default:
-      return 'var(--gray-500)';
+      return '#3b82f6';
   }
 };
 
 export const getTRLColor = (trlLevel: TRLLevel): string => {
   switch (trlLevel) {
-    case 'trl1':
-    case 'trl2':
-    case 'trl3':
-      return 'var(--error-500)';   // Red for early stage
-    case 'trl4':
-    case 'trl5':
-    case 'trl6':
-      return 'var(--warning-500)'; // Orange for development stage
-    case 'trl7':
-    case 'trl8':
-      return 'var(--info-500)';    // Blue for demonstration stage
-    case 'trl9':
-      return 'var(--success-500)'; // Green for operational
+    case TRLLevel.TRL1:
+    case TRLLevel.TRL2:
+    case TRLLevel.TRL3:
+      return '#ef4444'; // red
+    case TRLLevel.TRL4:
+    case TRLLevel.TRL5:
+    case TRLLevel.TRL6:
+      return '#f59e0b'; // amber
+    case TRLLevel.TRL7:
+    case TRLLevel.TRL8:
+      return '#3b82f6'; // blue
+    case TRLLevel.TRL9:
+      return '#10b981'; // green
     default:
-      return 'var(--gray-500)';
+      return '#6b7280';
   }
 };
 

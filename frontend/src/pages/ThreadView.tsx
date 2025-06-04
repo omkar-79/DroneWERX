@@ -26,54 +26,124 @@ import {
   Edit3,
   Play,
   Download,
-  Image as ImageIcon,
+  ImageIcon,
   FileText,
-  Video
+  Video,
+  UserX
 } from 'lucide-react';
-import { Header } from '../components/Header';
-import { SolutionEditor } from '../components/SolutionEditor';
-import { SolutionStatusManager } from '../components/SolutionStatusManager';
-import { mockThreads, mockSolutions, mockComments, mockThreadActivities } from '../data/mockData';
+import { Header, SolutionEditor, SolutionStatusManager, MediaGallery } from '../components';
+import { useThread, useSolutions, useComments, useActivities } from '../hooks';
+import { useAuth } from '../contexts/AuthContext';
 import type { Thread, Solution, Comment, ThreadActivity, TRLLevel, SolutionStatus } from '../types';
-import { UserRole } from '../types';
+import { UserRole, Priority } from '../types';
+import { threadsAPI } from '../services/api';
+import { usersAPI } from '../services/api';
 
 export const ThreadView: React.FC = () => {
-  const { threadId } = useParams<{ threadId: string }>();
+  const { id: threadId } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user: currentUser } = useAuth();
   const [activeTab, setActiveTab] = useState<'solutions' | 'activity' | 'details'>('solutions');
   const [newComment, setNewComment] = useState('');
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [showSolutionForm, setShowSolutionForm] = useState(false);
   const [editingSolution, setEditingSolution] = useState<string | null>(null);
 
-  // Mock current user for permissions
-  const currentUser = { 
-    id: '4', // admin_moderator - has rights to manage solution status
-    role: 'moderator' 
-  };
+  // Use real API data
+  const { 
+    thread, 
+    loading: threadLoading, 
+    error: threadError, 
+    refetch: refetchThread 
+  } = useThread(threadId || '');
 
-  // Find the thread
-  const thread = mockThreads.find(t => t.id === threadId);
-  if (!thread) {
+  const {
+    solutions: threadSolutions,
+    loading: solutionsLoading,
+    error: solutionsError,
+    createSolution,
+    updateSolution,
+    voteOnSolution,
+    updateSolutionStatus,
+    acceptSolution,
+    deleteSolution
+  } = useSolutions(threadId || '');
+
+  // Use real comment data
+  const {
+    comments: threadComments,
+    loading: commentsLoading,
+    error: commentsError,
+    createComment,
+    updateComment,
+    deleteComment,
+    voteOnComment
+  } = useComments(threadId || '');
+
+  // Use real activity data
+  const {
+    activities: threadActivities,
+    loading: activitiesLoading,
+    error: activitiesError
+  } = useActivities(threadId || '');
+
+  // Show loading state
+  if (threadLoading || solutionsLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-primary mb-4">Thread Not Found</h2>
-          <button
-            onClick={() => navigate('/home')}
-            className="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary-hover"
-          >
-            Return to Home
-          </button>
+      <div className="min-h-screen bg-background">
+        <Header
+          searchQuery=""
+          onSearchChange={() => {}}
+          onCreateThread={() => navigate('/create-challenge')}
+        />
+        <div className="flex items-center justify-center h-96">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
         </div>
       </div>
     );
   }
 
-  // Get solutions and comments for this thread
-  const threadSolutions = mockSolutions.filter(s => s.threadId === threadId);
-  const threadComments = mockComments;
-  const threadActivities = mockThreadActivities;
+  // Show error state
+  if (threadError || solutionsError || !thread) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header
+          searchQuery=""
+          onSearchChange={() => {}}
+          onCreateThread={() => navigate('/create-challenge')}
+        />
+        <div className="flex items-center justify-center h-96">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-primary mb-4">
+              {threadError || solutionsError ? 'Failed to Load Thread' : 'Thread Not Found'}
+            </h2>
+            <p className="text-muted mb-4">
+              {threadError || solutionsError || 'The thread you are looking for does not exist.'}
+            </p>
+            <div className="space-x-4">
+              <button
+                onClick={() => navigate('/')}
+                className="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary-hover"
+              >
+                Return to Home
+              </button>
+              {(threadError || solutionsError) && (
+                <button
+                  onClick={() => {
+                    refetchThread();
+                    window.location.reload(); // Refresh solutions
+                  }}
+                  className="px-6 py-3 bg-surface border border-border text-primary rounded-lg hover:bg-surface-hover"
+                >
+                  Try Again
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const getTRLColor = (trl?: TRLLevel): string => {
     if (!trl) return 'bg-gray-100 text-gray-800';
@@ -84,43 +154,159 @@ export const ThreadView: React.FC = () => {
     return 'bg-green-100 text-green-800';
   };
 
-  const formatTimeAgo = (date: Date): string => {
-    const now = new Date();
-    const diff = now.getTime() - date.getTime();
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    if (days === 0) return 'Today';
-    if (days === 1) return 'Yesterday';
-    return `${days} days ago`;
+  const formatTimeAgo = (date: Date | string): string => {
+    try {
+      const dateObj = date instanceof Date ? date : new Date(date);
+      
+      // Check if the date is valid
+      if (isNaN(dateObj.getTime())) {
+        return 'Unknown';
+      }
+      
+      const now = new Date();
+      const diff = now.getTime() - dateObj.getTime();
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      
+      if (days === 0) return 'Today';
+      if (days === 1) return 'Yesterday';
+      if (days < 0) return 'Future';
+      
+      return `${days} days ago`;
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return 'Unknown';
+    }
   };
 
-  const handleVote = (type: 'up' | 'down', targetType: 'thread' | 'solution' | 'comment', targetId: string) => {
-    console.log(`${type}vote ${targetType} ${targetId}`);
-    // TODO: Implement voting logic
+  // Helper function to safely format dates for display
+  const formatDate = (date: Date | string | null | undefined): string => {
+    try {
+      if (!date) return 'Not specified';
+      const dateObj = date instanceof Date ? date : new Date(date);
+      
+      // Check if the date is valid
+      if (isNaN(dateObj.getTime())) {
+        return 'Invalid date';
+      }
+      
+      return dateObj.toLocaleDateString();
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return 'Invalid date';
+    }
   };
 
-  const handleSolutionSubmit = (content: string, attachments: File[], mediaFiles: File[]) => {
-    console.log('Submit solution:', { content, attachments, mediaFiles });
-    setShowSolutionForm(false);
-    // TODO: Implement solution submission
+  const handleVote = async (type: 'up' | 'down', targetType: 'thread' | 'solution' | 'comment', targetId: string) => {
+    if (!currentUser) {
+      console.log('User must be logged in to vote');
+      return;
+    }
+
+    const voteType = type === 'up' ? 'UPVOTE' : 'DOWNVOTE';
+    
+    try {
+      if (targetType === 'thread') {
+        await threadsAPI.vote(targetId, voteType);
+        // Refetch thread to get updated vote counts
+        refetchThread();
+      } else if (targetType === 'solution') {
+        await voteOnSolution(targetId, voteType);
+        // The voteOnSolution hook already updates local state
+      } else if (targetType === 'comment') {
+        await voteOnComment(targetId, voteType);
+        // The voteOnComment hook already updates local state
+      }
+    } catch (error) {
+      console.error(`Failed to ${type}vote ${targetType}:`, error);
+      // TODO: Show error toast to user
+    }
   };
 
-  const handleSolutionEdit = (solutionId: string, content: string, attachments: File[], mediaFiles: File[]) => {
-    console.log('Edit solution:', { solutionId, content, attachments, mediaFiles });
-    setEditingSolution(null);
-    // TODO: Implement solution editing
+  const handleBookmark = async () => {
+    if (!currentUser || !thread) {
+      console.log('User must be logged in to bookmark');
+      return;
+    }
+
+    try {
+      await usersAPI.addBookmark(thread.id, 'thread');
+      // TODO: Update local bookmark state
+      console.log('Thread bookmarked successfully');
+    } catch (error) {
+      console.error('Failed to bookmark thread:', error);
+      // TODO: Show error toast to user
+    }
+  };
+
+  const handleCommentSubmit = async () => {
+    if (!currentUser || !newComment.trim()) {
+      return;
+    }
+
+    try {
+      await createComment({
+        content: newComment,
+        parentId: replyingTo || undefined,
+      });
+      setNewComment('');
+      setReplyingTo(null);
+    } catch (error) {
+      console.error('Failed to create comment:', error);
+      // TODO: Show error toast to user
+    }
+  };
+
+  const handleSolutionSubmit = async (content: string, files: File[]) => {
+    if (!threadId || !thread) return;
+    
+    // Generate a proper title that meets backend validation (min 5 chars)
+    const contentPreview = content.replace(/[*#\[\]()]/g, '').trim().substring(0, 50);
+    const solutionTitle = contentPreview.length >= 5 
+      ? contentPreview 
+      : `Solution for ${thread.title}`.substring(0, 200);
+    
+    try {
+      // Create solution with files
+      await createSolution({
+        title: solutionTitle,
+        content: content.trim(),
+        estimatedCost: undefined,
+        implementationTime: undefined,
+        trlLevel: undefined
+      }, files);
+      
+      setShowSolutionForm(false);
+    } catch (err) {
+      console.error('Failed to create solution:', err);
+      // TODO: Show error toast
+    }
+  };
+
+  const handleSolutionEdit = async (solutionId: string, content: string, files: File[]) => {
+    try {
+      await updateSolution(solutionId, { content });
+      setEditingSolution(null);
+    } catch (err) {
+      console.error('Failed to update solution:', err);
+      // TODO: Show error toast
+    }
   };
 
   const handleStatusUpdate = (solutionId: string, status: SolutionStatus, note: string) => {
-    console.log('Update solution status:', { solutionId, status, note });
-    // TODO: Implement status update
+    updateSolutionStatus(solutionId, status, note).catch(err => {
+      console.error('Failed to update status:', err);
+      // TODO: Show error toast
+    });
   };
 
   const canManageStatus = (solution: Solution) => {
-    return currentUser.id === thread.authorId || currentUser.role === 'moderator'; // Thread author or moderator can manage status
+    if (!currentUser) return false;
+    return currentUser.id === thread.authorId || currentUser.role === UserRole.MODERATOR || currentUser.role === UserRole.ADMIN;
   };
 
   const canEditSolution = (solution: Solution) => {
-    return currentUser.id === solution.author.id; // Only solution author can edit
+    if (!currentUser) return false;
+    return currentUser.id === solution.author.id;
   };
 
   const renderMediaAttachment = (url: string, type: 'image' | 'video') => {
@@ -158,6 +344,35 @@ export const ThreadView: React.FC = () => {
     }
   };
 
+  // Mock data for features not yet implemented in API
+  const relatedThreads: Thread[] = []; // TODO: Implement related threads API
+
+  const canEditThread = () => {
+    if (!currentUser || !thread) return false;
+    return currentUser.id === thread.authorId || 
+           currentUser.role === UserRole.MODERATOR || 
+           currentUser.role === UserRole.ADMIN;
+  };
+
+  const canDeleteAttachment = (attachment: any) => {
+    if (!currentUser) return false;
+    return currentUser.id === attachment.uploadedBy || 
+           currentUser.role === UserRole.MODERATOR || 
+           currentUser.role === UserRole.ADMIN;
+  };
+
+  const handleAttachmentDelete = async (attachmentId: string) => {
+    // The MediaGallery component will handle the API call
+    // We just need to refetch the thread data to update the UI
+    await refetchThread();
+  };
+
+  const handleSolutionAttachmentDelete = async (attachmentId: string) => {
+    // The MediaGallery component will handle the API call
+    // We just need to refetch the solutions data to update the UI
+    window.location.reload(); // For now, reload to get fresh data
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Header
@@ -169,7 +384,7 @@ export const ThreadView: React.FC = () => {
       <div className="max-w-7xl mx-auto p-6">
         {/* Breadcrumbs */}
         <nav className="flex items-center space-x-2 text-sm text-muted mb-6">
-          <Link to="/home" className="hover:text-primary">Home</Link>
+          <Link to="/" className="hover:text-primary">Home</Link>
           <span>/</span>
           <Link to={`/categories/${thread.category.id}`} className="hover:text-primary">
             {thread.category.name}
@@ -189,23 +404,35 @@ export const ThreadView: React.FC = () => {
                   
                   <div className="flex flex-wrap items-center gap-4 text-sm text-muted mb-4">
                     <div className="flex items-center space-x-2">
-                      <img
-                        src={thread.author.avatar}
-                        alt={thread.author.fullName}
-                        className="w-6 h-6 rounded-full"
-                      />
-                      <div className="flex flex-col">
-                        <h3 className="font-semibold text-primary">{thread.author.fullName}</h3>
-                        <p className="text-sm text-muted">@{thread.author.username}</p>
-                        <div className="flex items-center space-x-3 mt-1">
-                          <div className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            thread.author.role === UserRole.WARFIGHTER ? 'bg-primary/10 text-primary' :
-                            thread.author.role === UserRole.INNOVATOR ? 'bg-warning/10 text-warning' :
-                            'bg-success/10 text-success'
-                          }`}>
-                            {thread.author.role}
-                          </div>
+                      {thread.isAnonymous ? (
+                        <div className="w-6 h-6 rounded-full bg-gray-300 flex items-center justify-center">
+                          <UserX size={14} className="text-gray-500" />
                         </div>
+                      ) : (
+                        <img
+                          src={thread.author.avatar}
+                          alt={thread.author.fullName}
+                          className="w-6 h-6 rounded-full"
+                        />
+                      )}
+                      <div className="flex flex-col">
+                        <h3 className="font-semibold text-primary">
+                          {thread.isAnonymous ? 'Anonymous' : thread.author.fullName}
+                        </h3>
+                        <p className="text-sm text-muted">
+                          {thread.isAnonymous ? 'Anonymous User' : `@${thread.author.username}`}
+                        </p>
+                        {!thread.isAnonymous && (
+                          <div className="flex items-center space-x-3 mt-1">
+                            <div className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              thread.author.role === UserRole.WARFIGHTER ? 'bg-primary/10 text-primary' :
+                              thread.author.role === UserRole.INNOVATOR ? 'bg-warning/10 text-warning' :
+                              'bg-success/10 text-success'
+                            }`}>
+                              {thread.author.role}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center space-x-1">
@@ -224,9 +451,9 @@ export const ThreadView: React.FC = () => {
                   <div className="flex flex-wrap items-center gap-2 mb-4">
                     {/* Priority */}
                     <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                      thread.priority === 'critical' ? 'bg-error/10 text-error' :
-                      thread.priority === 'high' ? 'bg-warning/10 text-warning' :
-                      thread.priority === 'medium' ? 'bg-info/10 text-info' :
+                      thread.priority === Priority.CRITICAL ? 'bg-error/10 text-error' :
+                      thread.priority === Priority.HIGH ? 'bg-warning/10 text-warning' :
+                      thread.priority === Priority.MEDIUM ? 'bg-info/10 text-info' :
                       'bg-success/10 text-success'
                     }`}>
                       {thread.priority.toUpperCase()} Priority
@@ -290,7 +517,11 @@ export const ThreadView: React.FC = () => {
                     <ThumbsDown size={16} />
                     <span>{thread.downvotes}</span>
                   </button>
-                  <button className="p-2 rounded-lg hover:bg-surface-hover transition-colors">
+                  <button 
+                    onClick={handleBookmark}
+                    className="p-2 rounded-lg hover:bg-surface-hover transition-colors"
+                    title="Bookmark this thread"
+                  >
                     <Bookmark size={16} />
                   </button>
                   <button className="p-2 rounded-lg hover:bg-surface-hover transition-colors">
@@ -312,19 +543,11 @@ export const ThreadView: React.FC = () => {
               {thread.attachments.length > 0 && (
                 <div className="mt-6 border-t border-border pt-6">
                   <h3 className="font-semibold text-primary mb-3">Attachments</h3>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {thread.attachments.map((attachment, index) => (
-                      <div key={index} className="border border-border rounded-lg p-3">
-                        <div className="flex items-center space-x-2">
-                          {attachment.isImage ? <ImageIcon size={16} className="text-blue-500" /> :
-                           attachment.isVideo ? <Video size={16} className="text-purple-500" /> :
-                           <FileText size={16} className="text-gray-500" />}
-                          <span className="text-sm font-medium truncate">{attachment.originalName}</span>
-                        </div>
-                        <p className="text-xs text-muted mt-1">{(attachment.size / 1024).toFixed(1)} KB</p>
-                      </div>
-                    ))}
-                  </div>
+                  <MediaGallery
+                    attachments={thread.attachments}
+                    showActions={true}
+                    onDelete={canEditThread() ? handleAttachmentDelete : undefined}
+                  />
                 </div>
               )}
             </div>
@@ -393,8 +616,8 @@ export const ThreadView: React.FC = () => {
                     {editingSolution === solution.id ? (
                       <SolutionEditor
                         solution={solution}
-                        onSubmit={(content, attachments, mediaFiles) => 
-                          handleSolutionEdit(solution.id, content, attachments, mediaFiles)
+                        onSubmit={(content, files) => 
+                          handleSolutionEdit(solution.id, content, files)
                         }
                         onCancel={() => setEditingSolution(null)}
                         isEdit={true}
@@ -482,12 +705,23 @@ export const ThreadView: React.FC = () => {
                           dangerouslySetInnerHTML={{ __html: solution.content }}
                         />
 
-                        {/* Media Attachments */}
+                        {/* Attachments - Use new MediaGallery component */}
+                        {solution.attachments && solution.attachments.length > 0 && (
+                          <div className="mb-6">
+                            <MediaGallery
+                              attachments={solution.attachments}
+                              showActions={true}
+                              onDelete={canEditSolution(solution) ? handleSolutionAttachmentDelete : undefined}
+                            />
+                          </div>
+                        )}
+
+                        {/* Legacy Media Attachments - Keep for backward compatibility */}
                         {solution.mediaAttachments && (
                           <div className="mb-6">
                             {(solution.mediaAttachments.images.length > 0 || solution.mediaAttachments.videos.length > 0) && (
                               <div>
-                                <h4 className="font-medium text-primary mb-3">Media Attachments</h4>
+                                <h4 className="font-medium text-primary mb-3">Legacy Media Attachments</h4>
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
                                   {solution.mediaAttachments.images.map((url, index) => (
                                     <div key={`img-${index}`}>
@@ -505,7 +739,7 @@ export const ThreadView: React.FC = () => {
 
                             {solution.mediaAttachments.documents.length > 0 && (
                               <div>
-                                <h4 className="font-medium text-primary mb-3">Documents</h4>
+                                <h4 className="font-medium text-primary mb-3">Legacy Documents</h4>
                                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
                                   {solution.mediaAttachments.documents.map((doc, index) => (
                                     <div key={index} className="flex items-center space-x-2 p-3 bg-background-alt rounded-lg border border-border hover:border-primary/50 transition-colors cursor-pointer">
@@ -568,82 +802,128 @@ export const ThreadView: React.FC = () => {
                         {/* Solution Comments */}
                         <div className="border-t border-border pt-4">
                           <h4 className="font-medium text-primary mb-3">Discussion</h4>
-                          <div className="space-y-3">
-                            {threadComments.map((comment) => (
-                              <div key={comment.id} className="flex space-x-3">
-                                <img
-                                  src={comment.author.avatar}
-                                  alt={comment.author.fullName}
-                                  className="w-8 h-8 rounded-full flex-shrink-0"
-                                />
-                                <div className="flex-1">
-                                  <div className="flex items-center space-x-2">
-                                    <span className="font-medium text-primary">{comment.author.username}</span>
-                                    <span className="text-xs text-muted">{formatTimeAgo(comment.createdAt)}</span>
-                                  </div>
-                                  <p className="text-sm text-secondary mt-1">{comment.content}</p>
-                                  <div className="flex items-center space-x-4 mt-2">
-                                    <button className="flex items-center space-x-1 text-xs text-muted hover:text-primary">
-                                      <ThumbsUp size={12} />
-                                      <span>{comment.upvotes}</span>
-                                    </button>
-                                    <button className="text-xs text-muted hover:text-primary">
-                                      Reply
-                                    </button>
-                                  </div>
-                                  
-                                  {/* Nested Replies */}
-                                  {comment.replies && comment.replies.map((reply) => (
-                                    <div key={reply.id} className="flex space-x-3 mt-3 ml-6">
-                                      <img
-                                        src={reply.author.avatar}
-                                        alt={reply.author.fullName}
-                                        className="w-6 h-6 rounded-full flex-shrink-0"
-                                      />
-                                      <div className="flex-1">
-                                        <div className="flex items-center space-x-2">
-                                          <span className="font-medium text-primary text-sm">{reply.author.username}</span>
-                                          <span className="text-xs text-muted">{formatTimeAgo(reply.createdAt)}</span>
-                                        </div>
-                                        <p className="text-sm text-secondary mt-1">{reply.content}</p>
-                                      </div>
+                          
+                          {commentsLoading ? (
+                            <div className="flex justify-center py-4">
+                              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                            </div>
+                          ) : commentsError ? (
+                            <div className="text-center py-4 text-red-500">
+                              <p>Failed to load comments: {commentsError}</p>
+                            </div>
+                          ) : (
+                            <div className="space-y-3">
+                              {threadComments.map((comment) => (
+                                <div key={comment.id} className="flex space-x-3">
+                                  <img
+                                    src={comment.author.avatar}
+                                    alt={comment.author.fullName}
+                                    className="w-8 h-8 rounded-full flex-shrink-0"
+                                  />
+                                  <div className="flex-1">
+                                    <div className="flex items-center space-x-2">
+                                      <span className="font-medium text-primary">{comment.author.username}</span>
+                                      <span className="text-xs text-muted">{formatTimeAgo(comment.createdAt)}</span>
+                                      {comment.isEdited && (
+                                        <span className="text-xs text-muted">(edited)</span>
+                                      )}
                                     </div>
-                                  ))}
+                                    <p className="text-sm text-secondary mt-1">{comment.content}</p>
+                                    <div className="flex items-center space-x-4 mt-2">
+                                      <button 
+                                        onClick={() => handleVote('up', 'comment', comment.id)}
+                                        className={`flex items-center space-x-1 text-xs hover:text-primary transition-colors ${
+                                          comment.hasUserVoted === 'up' ? 'text-primary' : 'text-muted'
+                                        }`}
+                                      >
+                                        <ThumbsUp size={12} />
+                                        <span>{comment.upvotes}</span>
+                                      </button>
+                                      <button 
+                                        onClick={() => handleVote('down', 'comment', comment.id)}
+                                        className={`flex items-center space-x-1 text-xs hover:text-primary transition-colors ${
+                                          comment.hasUserVoted === 'down' ? 'text-primary' : 'text-muted'
+                                        }`}
+                                      >
+                                        <ThumbsDown size={12} />
+                                        <span>{comment.downvotes}</span>
+                                      </button>
+                                      <button 
+                                        onClick={() => setReplyingTo(comment.id)}
+                                        className="text-xs text-muted hover:text-primary"
+                                      >
+                                        Reply
+                                      </button>
+                                    </div>
+                                    
+                                    {/* Nested Replies */}
+                                    {comment.replies && comment.replies.map((reply) => (
+                                      <div key={reply.id} className="flex space-x-3 mt-3 ml-6">
+                                        <img
+                                          src={reply.author.avatar}
+                                          alt={reply.author.fullName}
+                                          className="w-6 h-6 rounded-full flex-shrink-0"
+                                        />
+                                        <div className="flex-1">
+                                          <div className="flex items-center space-x-2">
+                                            <span className="font-medium text-primary text-sm">{reply.author.username}</span>
+                                            <span className="text-xs text-muted">{formatTimeAgo(reply.createdAt)}</span>
+                                          </div>
+                                          <p className="text-sm text-secondary mt-1">{reply.content}</p>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
                                 </div>
-                              </div>
-                            ))}
-                          </div>
+                              ))}
+                              
+                              {threadComments.length === 0 && (
+                                <div className="text-center py-8 text-muted">
+                                  <MessageCircle size={24} className="mx-auto mb-2 opacity-50" />
+                                  <p>No comments yet. Be the first to comment!</p>
+                                </div>
+                              )}
+                            </div>
+                          )}
 
                           {/* Add Comment */}
-                          <div className="mt-4 flex space-x-3">
-                            <img
-                              src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face"
-                              alt="Current user"
-                              className="w-8 h-8 rounded-full flex-shrink-0"
-                            />
-                            <div className="flex-1">
-                              <textarea
-                                value={newComment}
-                                onChange={(e) => setNewComment(e.target.value)}
-                                placeholder="Add a comment..."
-                                className="w-full p-3 border border-border rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none"
-                                rows={2}
+                          {currentUser && (
+                            <div className="mt-4 flex space-x-3">
+                              <img
+                                src={currentUser.avatar || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face"}
+                                alt={currentUser.fullName}
+                                className="w-8 h-8 rounded-full flex-shrink-0"
                               />
-                              <div className="flex justify-end mt-2">
-                                <button
-                                  onClick={() => {
-                                    console.log('Submit comment:', newComment);
-                                    setNewComment('');
-                                  }}
-                                  disabled={!newComment.trim()}
-                                  className="flex items-center space-x-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                >
-                                  <Send size={14} />
-                                  <span>Comment</span>
-                                </button>
+                              <div className="flex-1">
+                                <textarea
+                                  value={newComment}
+                                  onChange={(e) => setNewComment(e.target.value)}
+                                  placeholder={replyingTo ? "Add a reply..." : "Add a comment..."}
+                                  className="w-full p-3 border border-border rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none"
+                                  rows={2}
+                                />
+                                <div className="flex justify-between items-center mt-2">
+                                  {replyingTo && (
+                                    <button
+                                      onClick={() => setReplyingTo(null)}
+                                      className="text-xs text-muted hover:text-primary"
+                                    >
+                                      Cancel reply
+                                    </button>
+                                  )}
+                                  <div className="flex-1"></div>
+                                  <button
+                                    onClick={handleCommentSubmit}
+                                    disabled={!newComment.trim()}
+                                    className="flex items-center space-x-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                  >
+                                    <Send size={14} />
+                                    <span>{replyingTo ? 'Reply' : 'Comment'}</span>
+                                  </button>
+                                </div>
                               </div>
                             </div>
-                          </div>
+                          )}
                         </div>
                       </div>
                     )}
@@ -655,27 +935,46 @@ export const ThreadView: React.FC = () => {
             {activeTab === 'activity' && (
               <div className="space-y-4">
                 <h3 className="font-semibold text-primary">Recent Activity</h3>
-                {threadActivities.map((activity) => (
-                  <div key={activity.id} className="flex items-start space-x-3 p-4 bg-surface border border-border rounded-lg">
-                    <img
-                      src={activity.author.avatar}
-                      alt={activity.author.fullName}
-                      className="w-8 h-8 rounded-full flex-shrink-0"
-                    />
-                    <div className="flex-1">
-                      <p className="text-sm">
-                        <span className="font-medium text-primary">{activity.author.username}</span>
-                        {' '}{activity.description}
-                      </p>
-                      <p className="text-xs text-muted mt-1">{formatTimeAgo(activity.timestamp)}</p>
-                    </div>
-                    <div className={`w-3 h-3 rounded-full flex-shrink-0 mt-2 ${
-                      activity.type === 'solution_accepted' ? 'bg-success' :
-                      activity.type === 'bounty_awarded' ? 'bg-warning' :
-                      'bg-info'
-                    }`} />
+                
+                {activitiesLoading ? (
+                  <div className="flex justify-center py-4">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
                   </div>
-                ))}
+                ) : activitiesError ? (
+                  <div className="text-center py-4 text-red-500">
+                    <p>Failed to load activities: {activitiesError}</p>
+                  </div>
+                ) : (
+                  <>
+                    {threadActivities.map((activity) => (
+                      <div key={activity.id} className="flex items-start space-x-3 p-4 bg-surface border border-border rounded-lg">
+                        <img
+                          src={activity.author.avatar}
+                          alt={activity.author.fullName}
+                          className="w-8 h-8 rounded-full flex-shrink-0"
+                        />
+                        <div className="flex-1">
+                          <p className="text-sm">
+                            <span className="font-medium text-primary">{activity.author.username}</span>
+                            {' '}{activity.description}
+                          </p>
+                          <p className="text-xs text-muted mt-1">{formatTimeAgo(activity.timestamp)}</p>
+                        </div>
+                        <div className={`w-3 h-3 rounded-full flex-shrink-0 mt-2 ${
+                          activity.type === 'solution_accepted' ? 'bg-success' :
+                          activity.type === 'bounty_awarded' ? 'bg-warning' :
+                          'bg-info'
+                        }`} />
+                      </div>
+                    ))}
+                    {threadActivities.length === 0 && (
+                      <div className="text-center py-8 text-muted">
+                        <Activity size={24} className="mx-auto mb-2 opacity-50" />
+                        <p>No activity yet</p>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
             )}
 
@@ -702,7 +1001,7 @@ export const ThreadView: React.FC = () => {
                         <p className="text-sm text-muted mt-2">{thread.bounty.description}</p>
                         {thread.bounty.deadline && (
                           <p className="text-xs text-muted mt-1">
-                            Deadline: {thread.bounty.deadline.toLocaleDateString()}
+                            Deadline: {formatDate(thread.bounty.deadline)}
                           </p>
                         )}
                       </div>
@@ -719,7 +1018,7 @@ export const ThreadView: React.FC = () => {
             <div className="bg-surface border border-border rounded-xl p-6">
               <h3 className="font-semibold text-primary mb-4">Related Challenges</h3>
               <div className="space-y-3">
-                {mockThreads.slice(0, 3).filter(t => t.id !== threadId).map((relatedThread) => (
+                {relatedThreads.map((relatedThread) => (
                   <Link
                     key={relatedThread.id}
                     to={`/thread/${relatedThread.id}`}
@@ -735,6 +1034,11 @@ export const ThreadView: React.FC = () => {
                     </div>
                   </Link>
                 ))}
+                {relatedThreads.length === 0 && (
+                  <div className="text-center py-4 text-muted">
+                    <p className="text-sm">No related challenges found</p>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -764,4 +1068,4 @@ export const ThreadView: React.FC = () => {
       </div>
     </div>
   );
-}; 
+};

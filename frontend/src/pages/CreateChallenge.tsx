@@ -19,12 +19,15 @@ import {
   Target,
   Clock,
   MapPin,
-  AlertTriangle
+  AlertTriangle,
+  Calendar
 } from 'lucide-react';
-import { Header } from '../components/Header';
+import { Header } from '../components';
+import { useThreads } from '../hooks';
+import { useAuth } from '../contexts/AuthContext';
+import { filesAPI, mediaAPI } from '../services/api';
 import type { TRLLevel } from '../types';
 import { Priority, Urgency } from '../types';
-import { mockCategories, mockTags } from '../data/mockData';
 
 interface FormData {
   title: string;
@@ -36,14 +39,23 @@ interface FormData {
   trlLevel?: TRLLevel;
   domain: string;
   location: string;
+  deadline: string;
   bountyAmount: string;
+  bountyDescription: string;
+  bountyDeadline: string;
   attachments: File[];
+  uploadedAttachments: any[]; // Store uploaded attachment IDs
+  isAnonymous: boolean;
 }
 
 export const CreateChallenge: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const descriptionRef = useRef<HTMLDivElement>(null);
+  
+  // Get real categories and tags from API
+  const { categories, allTags, createThread, loading: threadsLoading } = useThreads({ autoFetch: true });
   
   const [formData, setFormData] = useState<FormData>({
     title: '',
@@ -55,14 +67,20 @@ export const CreateChallenge: React.FC = () => {
     trlLevel: undefined,
     domain: '',
     location: '',
+    deadline: '',
     bountyAmount: '',
-    attachments: []
+    bountyDescription: '',
+    bountyDeadline: '',
+    attachments: [],
+    uploadedAttachments: [],
+    isAnonymous: false
   });
 
   const [showPreview, setShowPreview] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [customTag, setCustomTag] = useState('');
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   // Handle form field updates
   const updateField = (field: keyof FormData, value: any) => {
@@ -70,7 +88,7 @@ export const CreateChallenge: React.FC = () => {
   };
 
   // Handle file upload
-  const handleFileUpload = useCallback((files: FileList | null) => {
+  const handleFileUpload = useCallback(async (files: FileList | null) => {
     if (!files) return;
     
     const newFiles = Array.from(files).filter(file => {
@@ -80,10 +98,43 @@ export const CreateChallenge: React.FC = () => {
       return isValid && isUnderLimit;
     });
 
+    if (newFiles.length === 0) {
+      setSubmitError('No valid files selected. Please check file types and sizes.');
+      return;
+    }
+
+    // Add files to display immediately
     setFormData(prev => ({
       ...prev,
       attachments: [...prev.attachments, ...newFiles]
     }));
+
+    // Upload files immediately to temporary storage
+    try {
+      console.log('Uploading files to temporary storage...');
+      const uploadResult = await mediaAPI.uploadTemporary(newFiles);
+      
+      if (uploadResult.attachments) {
+        setFormData(prev => ({
+          ...prev,
+          uploadedAttachments: [...prev.uploadedAttachments, ...uploadResult.attachments]
+        }));
+        console.log('Files uploaded successfully:', uploadResult.attachments.length);
+      }
+    } catch (error) {
+      console.error('File upload failed:', error);
+      setSubmitError(
+        error instanceof Error 
+          ? `File upload failed: ${error.message}` 
+          : 'Failed to upload files. Please try again.'
+      );
+      
+      // Remove failed files from display
+      setFormData(prev => ({
+        ...prev,
+        attachments: prev.attachments.filter(file => !newFiles.includes(file))
+      }));
+    }
   }, []);
 
   // Drag and drop handlers
@@ -112,9 +163,15 @@ export const CreateChallenge: React.FC = () => {
 
   // Remove attachment
   const removeAttachment = (index: number) => {
+    const fileToRemove = formData.attachments[index];
+    
     setFormData(prev => ({
       ...prev,
-      attachments: prev.attachments.filter((_, i) => i !== index)
+      attachments: prev.attachments.filter((_, i) => i !== index),
+      // Also remove from uploaded attachments if it was uploaded
+      uploadedAttachments: prev.uploadedAttachments.filter(att => 
+        att.originalName !== fileToRemove?.name
+      )
     }));
   };
 
@@ -151,18 +208,122 @@ export const CreateChallenge: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setSubmitError(null);
+
+    // Validation
+    if (!formData.title.trim()) {
+      setSubmitError('Title is required');
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (!formData.description.trim()) {
+      setSubmitError('Description is required');
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (!formData.category) {
+      setSubmitError('Category is required');
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (!user) {
+      setSubmitError('You must be logged in to create a challenge');
+      setIsSubmitting(false);
+      return;
+    }
+
+    // Validate bounty fields if bounty amount is provided
+    if (formData.bountyAmount && parseFloat(formData.bountyAmount) > 0) {
+      if (!formData.bountyDescription.trim()) {
+        setSubmitError('Bounty description is required when offering a bounty');
+        setIsSubmitting(false);
+        return;
+      }
+    }
+
+    // Validate deadline if provided
+    if (formData.deadline) {
+      const deadlineDate = new Date(formData.deadline);
+      const now = new Date();
+      if (deadlineDate <= now) {
+        setSubmitError('Deadline must be in the future');
+        setIsSubmitting(false);
+        return;
+      }
+    }
+
+    // Validate bounty deadline if provided
+    if (formData.bountyDeadline) {
+      const bountyDeadlineDate = new Date(formData.bountyDeadline);
+      const now = new Date();
+      if (bountyDeadlineDate <= now) {
+        setSubmitError('Bounty deadline must be in the future');
+        setIsSubmitting(false);
+        return;
+      }
+    }
 
     try {
-      // TODO: Implement actual API call
-      console.log('Submitting challenge:', formData);
+      // Prepare thread data with all fields
+      const threadData = {
+        title: formData.title.trim(),
+        description: formData.description,
+        categoryId: formData.category,
+        tags: formData.tags,
+        priority: formData.priority,
+        urgency: formData.urgency,
+        trlLevel: formData.trlLevel || undefined,
+        domain: formData.domain.trim() || undefined,
+        location: formData.location.trim() || undefined,
+        deadline: formData.deadline || undefined,
+        isAnonymous: formData.isAnonymous,
+        bountyAmount: formData.bountyAmount && parseFloat(formData.bountyAmount) > 0 ? parseFloat(formData.bountyAmount) : undefined,
+        bountyDescription: formData.bountyDescription.trim() || undefined,
+        bountyDeadline: formData.bountyDeadline || undefined,
+      };
+
+      console.log('Creating thread with data:', threadData);
+
+      // Create the thread using real API
+      const result = await createThread(threadData);
       
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Attach uploaded files to the thread if any
+      if (formData.uploadedAttachments.length > 0 && result && result.thread) {
+        try {
+          const attachmentIds = formData.uploadedAttachments.map(att => att.id);
+          await mediaAPI.attachToThread(result.thread.id, attachmentIds);
+          console.log('Files attached to thread successfully');
+        } catch (fileError) {
+          console.error('File attachment failed:', fileError);
+          // Don't fail the whole process for file attachment errors
+          console.warn('Thread created but files failed to attach');
+        }
+      }
       
-      // Navigate back to home on success
-      navigate('/home');
+      // Navigate to the created thread
+      if (result && result.thread) {
+        navigate(`/thread/${result.thread.id}`);
+      } else {
+        navigate('/home');
+      }
     } catch (error) {
-      console.error('Error submitting challenge:', error);
+      console.error('Error creating challenge:', error);
+      
+      // Handle specific authentication errors
+      if (error instanceof Error && error.message.includes('Authentication')) {
+        setSubmitError('Your session has expired. Please log in again.');
+        // Could redirect to login page here
+        // navigate('/login');
+      } else {
+        setSubmitError(
+          error instanceof Error 
+            ? error.message 
+            : 'Failed to create challenge. Please try again.'
+        );
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -377,7 +538,7 @@ export const CreateChallenge: React.FC = () => {
                     required
                   >
                     <option value="">Select a category</option>
-                    {mockCategories.map(category => (
+                    {categories.map(category => (
                       <option key={category.id} value={category.id}>
                         {category.name}
                       </option>
@@ -410,7 +571,7 @@ export const CreateChallenge: React.FC = () => {
                     
                     {/* Popular Tags */}
                     <div className="flex flex-wrap gap-2">
-                      {mockTags.slice(0, 6).map(tag => (
+                      {allTags.slice(0, 6).map(tag => (
                         <button
                           key={tag.id}
                           type="button"
@@ -494,15 +655,15 @@ export const CreateChallenge: React.FC = () => {
                     className="w-full px-4 py-3 border border-border rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20"
                   >
                     <option value="">Select TRL Level</option>
-                    <option value="trl1">TRL 1 - Basic principles</option>
-                    <option value="trl2">TRL 2 - Technology concept</option>
-                    <option value="trl3">TRL 3 - Experimental proof</option>
-                    <option value="trl4">TRL 4 - Lab validation</option>
-                    <option value="trl5">TRL 5 - Relevant environment</option>
-                    <option value="trl6">TRL 6 - Technology demonstration</option>
-                    <option value="trl7">TRL 7 - System prototype</option>
-                    <option value="trl8">TRL 8 - System qualified</option>
-                    <option value="trl9">TRL 9 - Operational system</option>
+                    <option value="TRL1">TRL 1 - Basic principles</option>
+                    <option value="TRL2">TRL 2 - Technology concept</option>
+                    <option value="TRL3">TRL 3 - Experimental proof</option>
+                    <option value="TRL4">TRL 4 - Lab validation</option>
+                    <option value="TRL5">TRL 5 - Relevant environment</option>
+                    <option value="TRL6">TRL 6 - Technology demonstration</option>
+                    <option value="TRL7">TRL 7 - System prototype</option>
+                    <option value="TRL8">TRL 8 - System qualified</option>
+                    <option value="TRL9">TRL 9 - Operational system</option>
                   </select>
                 </div>
               </div>
@@ -536,27 +697,118 @@ export const CreateChallenge: React.FC = () => {
                 </div>
               </div>
 
+              {/* Deadline Field */}
+              <div className="bg-surface border border-border rounded-xl p-6">
+                <label className="block text-sm font-semibold text-primary mb-3">
+                  Deadline (Optional)
+                </label>
+                <div className="flex items-center space-x-3">
+                  <Calendar size={20} className="text-muted" />
+                  <input
+                    type="datetime-local"
+                    value={formData.deadline}
+                    onChange={(e) => updateField('deadline', e.target.value)}
+                    className="flex-1 px-4 py-3 border border-border rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+                <p className="text-xs text-muted mt-2">
+                  Set a deadline for when solutions should be submitted.
+                </p>
+              </div>
+
               {/* Bounty */}
               <div className="bg-surface border border-border rounded-xl p-6">
                 <label className="block text-sm font-semibold text-primary mb-3">
                   Bounty (Optional)
                 </label>
-                <div className="flex items-center space-x-3">
-                  <DollarSign size={20} className="text-warning" />
-                  <input
-                    type="number"
-                    value={formData.bountyAmount}
-                    onChange={(e) => updateField('bountyAmount', e.target.value)}
-                    placeholder="0"
-                    min="0"
-                    className="flex-1 px-4 py-3 border border-border rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20"
-                  />
-                  <span className="text-muted">USD</span>
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-3">
+                    <DollarSign size={20} className="text-warning" />
+                    <input
+                      type="number"
+                      value={formData.bountyAmount}
+                      onChange={(e) => updateField('bountyAmount', e.target.value)}
+                      placeholder="0"
+                      min="0"
+                      className="flex-1 px-4 py-3 border border-border rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20"
+                    />
+                    <span className="text-muted">USD</span>
+                  </div>
+                  
+                  {formData.bountyAmount && parseFloat(formData.bountyAmount) > 0 && (
+                    <>
+                      <div>
+                        <label className="block text-sm font-medium text-primary mb-2">
+                          Bounty Description *
+                        </label>
+                        <textarea
+                          value={formData.bountyDescription}
+                          onChange={(e) => updateField('bountyDescription', e.target.value)}
+                          placeholder="Describe what the bounty is for and any specific requirements..."
+                          rows={3}
+                          className="w-full px-4 py-3 border border-border rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-primary mb-2">
+                          Bounty Deadline (Optional)
+                        </label>
+                        <input
+                          type="datetime-local"
+                          value={formData.bountyDeadline}
+                          onChange={(e) => updateField('bountyDeadline', e.target.value)}
+                          className="w-full px-4 py-3 border border-border rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20"
+                        />
+                      </div>
+                    </>
+                  )}
                 </div>
                 <p className="text-xs text-muted mt-2">
                   Offer a monetary reward to incentivize high-quality solutions.
                 </p>
               </div>
+
+              {/* Anonymous Posting Option */}
+              <div className="bg-surface border border-border rounded-xl p-6">
+                <div className="flex items-start space-x-3">
+                  <input
+                    type="checkbox"
+                    id="anonymous"
+                    checked={formData.isAnonymous}
+                    onChange={(e) => updateField('isAnonymous', e.target.checked)}
+                    className="mt-1 h-4 w-4 text-primary focus:ring-primary border-border rounded"
+                  />
+                  <div className="flex-1">
+                    <label htmlFor="anonymous" className="block text-sm font-semibold text-primary mb-2 cursor-pointer">
+                      Post Anonymously
+                    </label>
+                    <p className="text-xs text-muted">
+                      Your identity will be hidden from other users. Only moderators can see who posted anonymous challenges.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Error Display */}
+              {submitError && (
+                <div className="bg-error/10 border border-error/20 rounded-lg p-4">
+                  <div className="flex items-center space-x-2">
+                    <AlertTriangle size={16} className="text-error" />
+                    <p className="text-error font-medium">{submitError}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Loading State for Categories/Tags */}
+              {threadsLoading && (
+                <div className="bg-info/10 border border-info/20 rounded-lg p-4">
+                  <div className="flex items-center space-x-2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-info"></div>
+                    <p className="text-info">Loading categories and tags...</p>
+                  </div>
+                </div>
+              )}
 
               {/* Submit Buttons */}
               <div className="flex items-center justify-between pt-6">
@@ -659,6 +911,41 @@ export const CreateChallenge: React.FC = () => {
                     className="text-muted mb-3 line-clamp-3"
                     dangerouslySetInnerHTML={{ __html: formData.description }}
                   />
+                  
+                  {/* Priority and Urgency */}
+                  <div className="flex items-center space-x-3 mb-3 text-xs">
+                    <span className={`px-2 py-1 rounded ${
+                      formData.priority === Priority.CRITICAL ? 'bg-red-100 text-red-700' :
+                      formData.priority === Priority.HIGH ? 'bg-orange-100 text-orange-700' :
+                      formData.priority === Priority.MEDIUM ? 'bg-yellow-100 text-yellow-700' :
+                      'bg-green-100 text-green-700'
+                    }`}>
+                      {formData.priority}
+                    </span>
+                    <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded">
+                      {formData.urgency}
+                    </span>
+                  </div>
+
+                  {/* Deadline */}
+                  {formData.deadline && (
+                    <div className="flex items-center space-x-2 mb-3 text-xs text-muted">
+                      <Calendar size={12} />
+                      <span>Deadline: {new Date(formData.deadline).toLocaleDateString()}</span>
+                    </div>
+                  )}
+
+                  {/* Bounty */}
+                  {formData.bountyAmount && parseFloat(formData.bountyAmount) > 0 && (
+                    <div className="flex items-center space-x-2 mb-3 text-xs">
+                      <DollarSign size={12} className="text-warning" />
+                      <span className="font-medium text-warning">
+                        ${parseFloat(formData.bountyAmount).toLocaleString()} USD Bounty
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Tags */}
                   <div className="flex flex-wrap gap-1">
                     {formData.tags.slice(0, 3).map(tag => (
                       <span
@@ -674,6 +961,14 @@ export const CreateChallenge: React.FC = () => {
                       </span>
                     )}
                   </div>
+
+                  {/* Attachments count */}
+                  {formData.attachments.length > 0 && (
+                    <div className="flex items-center space-x-2 mt-3 text-xs text-muted">
+                      <Upload size={12} />
+                      <span>{formData.attachments.length} file{formData.attachments.length !== 1 ? 's' : ''} attached</span>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

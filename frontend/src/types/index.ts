@@ -20,10 +20,10 @@ export interface User {
 }
 
 export enum UserRole {
-  WARFIGHTER = 'warfighter',
-  INNOVATOR = 'innovator',
-  MODERATOR = 'moderator',
-  ADMIN = 'admin'
+  WARFIGHTER = 'WARFIGHTER',
+  INNOVATOR = 'INNOVATOR',
+  MODERATOR = 'MODERATOR',
+  ADMIN = 'ADMIN'
 }
 
 export interface UserStats {
@@ -63,6 +63,7 @@ export interface Thread {
   isSticky: boolean;
   isClosed: boolean;
   bounty?: Bounty;
+  isAnonymous: boolean;
 }
 
 export interface Category {
@@ -84,37 +85,37 @@ export interface Tag {
 }
 
 export enum Priority {
-  LOW = 'low',
-  MEDIUM = 'medium',
-  HIGH = 'high',
-  CRITICAL = 'critical'
+  LOW = 'LOW',
+  MEDIUM = 'MEDIUM',
+  HIGH = 'HIGH',
+  CRITICAL = 'CRITICAL'
 }
 
 export enum ThreadStatus {
-  OPEN = 'open',
-  IN_PROGRESS = 'in_progress',
-  SOLVED = 'solved',
-  CLOSED = 'closed',
-  ARCHIVED = 'archived'
+  OPEN = 'OPEN',
+  IN_PROGRESS = 'IN_PROGRESS',
+  SOLVED = 'SOLVED',
+  CLOSED = 'CLOSED',
+  ARCHIVED = 'ARCHIVED'
 }
 
 export enum Urgency {
-  ROUTINE = 'routine',
-  PRIORITY = 'priority',
-  IMMEDIATE = 'immediate',
-  FLASH = 'flash'
+  ROUTINE = 'ROUTINE',
+  PRIORITY = 'PRIORITY',
+  IMMEDIATE = 'IMMEDIATE',
+  FLASH = 'FLASH'
 }
 
 export enum TRLLevel {
-  TRL1 = 'trl1', // Basic principles observed
-  TRL2 = 'trl2', // Technology concept formulated
-  TRL3 = 'trl3', // Experimental proof of concept
-  TRL4 = 'trl4', // Technology validated in lab
-  TRL5 = 'trl5', // Technology validated in relevant environment
-  TRL6 = 'trl6', // Technology demonstrated in relevant environment
-  TRL7 = 'trl7', // System prototype demonstration
-  TRL8 = 'trl8', // System complete and qualified
-  TRL9 = 'trl9'  // Actual system proven in operational environment
+  TRL1 = 'TRL1', // Basic principles observed
+  TRL2 = 'TRL2', // Technology concept formulated
+  TRL3 = 'TRL3', // Experimental proof of concept
+  TRL4 = 'TRL4', // Technology validated in lab
+  TRL5 = 'TRL5', // Technology validated in relevant environment
+  TRL6 = 'TRL6', // Technology demonstrated in relevant environment
+  TRL7 = 'TRL7', // System prototype demonstration
+  TRL8 = 'TRL8', // System complete and qualified
+  TRL9 = 'TRL9'  // Actual system proven in operational environment
 }
 
 // Solution Types
@@ -141,7 +142,7 @@ export interface Solution {
   statusUpdatedBy?: string;
   statusUpdatedAt?: Date;
   statusNote?: string;
-  attachments: string[];
+  attachments: Attachment[];
   mediaAttachments?: {
     images: string[];
     videos: string[];

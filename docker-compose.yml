@@ -1,32 +1,227 @@
-version: "3.8"
+version: '3.8'
 
 services:
-
-  db:
-    image: postgres:latest
-    container_name: dronewerx_db
-    env_file:
-      - .env
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: dronewerx-postgres
+    restart: unless-stopped
     environment:
-      # These instruct the official Postgres image to initialize a DB and user.
-      POSTGRES_USER: "${DB_USER}"
-      POSTGRES_PASSWORD: "${DB_PASS}"
-      POSTGRES_DB: "${DB_NAME}"
+      POSTGRES_DB: dronewerx_db
+      POSTGRES_USER: dronewerx
+      POSTGRES_PASSWORD: secure_password_change_in_production
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
+    ports:
+      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5433:5432" # optional, only needed if you want to connect from host
+      - ./backend/database/init:/docker-entrypoint-initdb.d
+    networks:
+      - dronewerx-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dronewerx -d dronewerx_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: dronewerx-redis
+    restart: unless-stopped
+    command: redis-server --requirepass redis_password_change_in_production --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - dronewerx-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # Minio Object Storage
+  minio:
+    image: minio/minio:latest
+    container_name: dronewerx-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"  # API
+      - "9001:9001"  # Console
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin123
+      MINIO_BROWSER_REDIRECT_URL: http://localhost:9001
+    volumes:
+      - minio_data:/data
+    networks:
+      - dronewerx-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Backend API
   backend:
     build:
       context: ./backend
-    container_name: dronewerx_backend
-    depends_on:
-      - db
-    env_file:
-      - .env # this points to /my-project/.env
+      dockerfile: Dockerfile
+      target: development
+    container_name: dronewerx-backend
+    restart: unless-stopped
     ports:
-      - "8000:8000" # forwards container’s 8000 → host 8000
+      - "4000:4000"
+    environment:
+      NODE_ENV: development
+      PORT: 4000
+      DATABASE_URL: postgresql://dronewerx:secure_password_change_in_production@postgres:5432/dronewerx_db?schema=public
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: redis_password_change_in_production
+      JWT_SECRET: your-super-secure-jwt-secret-key-here-minimum-32-characters-dev
+      JWT_REFRESH_SECRET: your-super-secure-refresh-secret-key-here-minimum-32-characters-dev
+      ENCRYPTION_KEY: your-32-character-encryption-key-dev
+      ALLOWED_ORIGINS: http://localhost:3000,http://localhost:5173
+      RATE_LIMIT_WINDOW_MS: 900000
+      RATE_LIMIT_MAX_REQUESTS: 1000
+      LOG_LEVEL: debug
+      # Minio/S3 Configuration
+      MINIO_ENDPOINT: minio
+      MINIO_PORT: 9000
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin123
+      MINIO_USE_SSL: false
+      MINIO_BUCKET_NAME: dronewerx-media
+      # Public URL for file access
+      MINIO_PUBLIC_URL: http://localhost:9000
+    volumes:
+      - ./backend/src:/app/src
+      - ./backend/prisma:/app/prisma
+      - ./backend/logs:/app/logs
+      - backend_uploads:/app/uploads
+    networks:
+      - dronewerx-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Frontend React App
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: development
+    container_name: dronewerx-frontend
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    environment:
+      NODE_ENV: development
+      REACT_APP_API_URL: http://localhost:4000/api/v1
+      REACT_APP_GRAPHQL_URL: http://localhost:4000/graphql
+      REACT_APP_WS_URL: ws://localhost:4000/graphql
+      GENERATE_SOURCEMAP: false
+      FAST_REFRESH: true
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+      - frontend_node_modules:/app/node_modules
+    networks:
+      - dronewerx-network
+    depends_on:
+      backend:
+        condition: service_healthy
+    stdin_open: true
+    tty: true
+
+  # Nginx Reverse Proxy (Production)
+  nginx:
+    image: nginx:alpine
+    container_name: dronewerx-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/ssl:/etc/nginx/ssl
+      - ./nginx/logs:/var/log/nginx
+    networks:
+      - dronewerx-network
+    depends_on:
+      - frontend
+      - backend
+    profiles:
+      - production
+
+  # PgAdmin for Database Management (Development)
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: dronewerx-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: admin_password_change
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+      PGADMIN_CONFIG_CHECK_EMAIL_DELIVERABILITY: 'False'
+      PGADMIN_CONFIG_ALLOW_SPECIAL_EMAIL_DOMAINS: '["local", "dev", "test"]'
+    ports:
+      - "8080:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - dronewerx-network
+    depends_on:
+      - postgres
+    profiles:
+      - development
+
+  # Redis Commander (Development)
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: dronewerx-redis-commander
+    restart: unless-stopped
+    environment:
+      REDIS_HOSTS: local:redis:6379:0:redis_password_change_in_production
+    ports:
+      - "8081:8081"
+    networks:
+      - dronewerx-network
+    depends_on:
+      - redis
+    profiles:
+      - development
 
 volumes:
   postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  minio_data:
+    driver: local
+  backend_uploads:
+    driver: local
+  frontend_node_modules:
+    driver: local
+  pgadmin_data:
+    driver: local
+
+networks:
+  dronewerx-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

@@ -1,31 +1,103 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { Login, Register } from './components';
+
+// Import pages from pages folder
 import { Home } from './pages/Home';
-import { CreateChallenge } from './pages/CreateChallenge';
 import { ThreadView } from './pages/ThreadView';
+import { CreateChallenge } from './pages/CreateChallenge';
 import { Profile } from './pages/Profile';
+
 import './App.css';
+
+// Protected Route component
+const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user, loading } = useAuth();
+  
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+  
+  return user ? <>{children}</> : <Navigate to="/login" />;
+};
+
+// Public Route component (for login/register when already authenticated)
+const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user, loading } = useAuth();
+  
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+  
+  return user ? <Navigate to="/" /> : <>{children}</>;
+};
 
 function App() {
   return (
-    <Router>
-      <div className="min-h-screen bg-background">
+    <AuthProvider>
+      <Router>
         <Routes>
-          <Route path="/" element={<Navigate to="/home" replace />} />
-          <Route path="/home" element={<Home />} />
-          <Route path="/create-challenge" element={<CreateChallenge />} />
-          <Route path="/thread/:threadId" element={<ThreadView />} />
-          <Route path="/categories" element={<div className="p-8 text-center">Categories Page Coming Soon</div>} />
-          <Route path="/categories/:categoryId" element={<div className="p-8 text-center">Category Detail Page Coming Soon</div>} />
-          <Route path="/leaderboard" element={<div className="p-8 text-center">Leaderboard Page Coming Soon</div>} />
-          <Route path="/bounties" element={<div className="p-8 text-center">Bounties Page Coming Soon</div>} />
-          <Route path="/profile/:userId" element={<Profile />} />
-          <Route path="/settings" element={<div className="p-8 text-center">Settings Page Coming Soon</div>} />
-          {/* Catch all route */}
-          <Route path="*" element={<Navigate to="/home" replace />} />
+          {/* Public routes - redirect to home if already authenticated */}
+          <Route path="/login" element={
+            <PublicRoute>
+              <Login />
+            </PublicRoute>
+          } />
+          <Route path="/register" element={
+            <PublicRoute>
+              <Register />
+            </PublicRoute>
+          } />
+          
+          {/* Protected routes - use pages from pages folder */}
+          <Route path="/" element={
+            <ProtectedRoute>
+              <Home />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/thread/:id" element={
+            <ProtectedRoute>
+              <ThreadView />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/create-challenge" element={
+            <ProtectedRoute>
+              <CreateChallenge />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/profile" element={
+            <ProtectedRoute>
+              <Profile />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/profile/:userId" element={
+            <ProtectedRoute>
+              <Profile />
+            </ProtectedRoute>
+          } />
+          
+          {/* Legacy route redirects */}
+          <Route path="/threads/:id" element={<Navigate to="/thread/:id" />} />
+          <Route path="/create-thread" element={<Navigate to="/create-challenge" />} />
+          
+          {/* Redirect unknown routes to home */}
+          <Route path="*" element={<Navigate to="/" />} />
         </Routes>
-      </div>
-    </Router>
+      </Router>
+    </AuthProvider>
   );
 }
 

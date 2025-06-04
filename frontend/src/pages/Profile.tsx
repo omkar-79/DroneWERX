@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -33,19 +33,35 @@ import {
   Bookmark,
   X,
   Save,
-  UserPlus
+  UserPlus,
+  UserX,
+  Search,
+  SortDesc
 } from 'lucide-react';
-import { Header } from '../components/Header';
-import { mockUsers, mockThreads, mockSolutions, mockThreadActivities } from '../data/mockData';
+import { Header } from '../components';
+import { useAuth } from '../contexts/AuthContext';
+import { useThreads } from '../hooks';
 import { UserRole } from '../types';
-import type { User, Thread, Solution } from '../types';
+import { formatTimeAgo, formatDate } from '../utils';
+import type { User, Thread, Solution, UserStats } from '../types';
+import { Priority } from '../types';
+import { authAPI, usersAPI } from '../services/api';
 
 export const Profile: React.FC = () => {
-  const { userId } = useParams<{ userId: string }>();
+  const { user: currentUser, logout } = useAuth();
+  const { id: userId } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  
+  // Determine if viewing own profile or another user's profile - MOVED UP
+  const isOwnProfile = !userId || userId === currentUser?.id;
+  const profileUserId = isOwnProfile ? currentUser?.id : userId;
+
   const [activeTab, setActiveTab] = useState<'overview' | 'activity' | 'portfolio' | 'stats' | 'bookmarks'>('overview');
   const [timeFilter, setTimeFilter] = useState<'week' | 'month' | 'year' | 'all'>('all');
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [profileUser, setProfileUser] = useState<User | null>(isOwnProfile ? currentUser : null);
+  const [profileLoading, setProfileLoading] = useState(true);
+  const [profileError, setProfileError] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({
     fullName: '',
     bio: '',
@@ -54,16 +70,89 @@ export const Profile: React.FC = () => {
     email: ''
   });
 
-  // Mock current user for permissions
-  const currentUser = mockUsers[0]; // Assume logged in as first user
-  const profileUser = mockUsers.find(u => u.id === userId) || mockUsers[0];
-  const isOwnProfile = currentUser.id === profileUser.id;
+  // State for user data from API
+  const [userThreads, setUserThreads] = useState<Thread[]>([]);
+  const [userSolutions, setUserSolutions] = useState<Solution[]>([]);
+  const [userStats, setUserStats] = useState<any>(null);
+  const [userBadges, setUserBadges] = useState<any[]>([]);
+  const [userActivities, setUserActivities] = useState<any[]>([]);
+  const [userBookmarks, setUserBookmarks] = useState<any>({ threads: [], users: [] });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Mock bookmarked users
-  const bookmarkedUsers = [mockUsers[1], mockUsers[2]]; // Mock data for bookmarked users
+  // Mock data for features not yet implemented - REMOVED since we now have APIs
+  const bookmarkedUsers: User[] = userBookmarks.users || [];
+  const bookmarkedThreads: Thread[] = userBookmarks.threads || [];
 
-  // Mock bookmarked threads (for warfighters)
-  const bookmarkedThreads = mockThreads.slice(1, 4); // Mock data for bookmarked threads
+  // Load user data
+  useEffect(() => {
+    const loadUserData = async () => {
+      if (!profileUserId) {
+        setLoading(false);
+        return;
+      }
+      
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Load user profile (only if not own profile, since we already have currentUser)
+        if (!isOwnProfile) {
+          const userResponse = await usersAPI.getById(profileUserId);
+          setProfileUser(userResponse.user);
+        } else if (currentUser) {
+          setProfileUser(currentUser);
+        }
+
+        // Load user data in parallel
+        const promises = [
+          usersAPI.getUserThreads(profileUserId, { page: 1, limit: 10 }),
+          usersAPI.getUserSolutions(profileUserId, { page: 1, limit: 10 }),
+          usersAPI.getUserStats(profileUserId),
+          usersAPI.getUserBadges(profileUserId),
+          usersAPI.getUserActivities(profileUserId, { page: 1, limit: 10 }),
+        ];
+
+        // Only fetch bookmarks for own profile (requires authentication)
+        if (isOwnProfile) {
+          promises.push(usersAPI.getUserBookmarks(profileUserId));
+        }
+
+        const results = await Promise.all(promises);
+        const [threadsResponse, solutionsResponse, statsResponse, badgesResponse, activitiesResponse, bookmarksResponse] = results;
+
+        setUserThreads(threadsResponse.threads || []);
+        setUserSolutions(solutionsResponse.solutions || []);
+        setUserStats(statsResponse.stats || {});
+        setUserBadges(badgesResponse.badges || []);
+        setUserActivities(activitiesResponse.activities || []);
+        
+        if (bookmarksResponse) {
+          setUserBookmarks(bookmarksResponse.bookmarks || { threads: [], users: [] });
+        }
+      } catch (error) {
+        console.error('Failed to load user data:', error);
+        setError('Failed to load user profile');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadUserData();
+  }, [profileUserId, isOwnProfile, currentUser]);
+
+  // Handle follow user
+  const handleFollowUser = async () => {
+    if (!profileUserId || isOwnProfile) return;
+    
+    try {
+      await usersAPI.followUser(profileUserId);
+      // You could update UI state here to show followed status
+      console.log('User followed successfully');
+    } catch (error) {
+      console.error('Failed to follow user:', error);
+    }
+  };
 
   // Initialize edit form with current user data
   useEffect(() => {
@@ -78,22 +167,75 @@ export const Profile: React.FC = () => {
     }
   }, [profileUser]);
 
-  // Get user's content
-  const userThreads = mockThreads.filter(t => t.authorId === profileUser.id);
-  const userSolutions = mockSolutions.filter(s => s.author.id === profileUser.id);
-  const userActivities = mockThreadActivities.filter(a => a.author.id === profileUser.id);
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header
+          searchQuery=""
+          onSearchChange={() => {}}
+          onCreateThread={() => navigate('/create-challenge')}
+        />
+        <div className="max-w-7xl mx-auto p-6">
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+              <p className="text-muted">Loading profile...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header
+          searchQuery=""
+          onSearchChange={() => {}}
+          onCreateThread={() => navigate('/create-challenge')}
+        />
+        <div className="max-w-7xl mx-auto p-6">
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <h2 className="text-2xl font-bold text-primary mb-4">Error Loading Profile</h2>
+              <p className="text-muted mb-6">{error}</p>
+              <button
+                onClick={() => navigate('/')}
+                className="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary-hover"
+              >
+                Return to Home
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!profileUser) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-primary mb-4">User Not Found</h2>
-          <button
-            onClick={() => navigate('/home')}
-            className="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary-hover"
-          >
-            Return to Home
-          </button>
+      <div className="min-h-screen bg-background">
+        <Header
+          searchQuery=""
+          onSearchChange={() => {}}
+          onCreateThread={() => navigate('/create-challenge')}
+        />
+        <div className="max-w-7xl mx-auto p-6">
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <h2 className="text-2xl font-bold text-primary mb-4">User Not Found</h2>
+              <p className="text-muted mb-6">The user you're looking for doesn't exist or has been deactivated.</p>
+              <button
+                onClick={() => navigate('/')}
+                className="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary-hover"
+              >
+                Return to Home
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -129,22 +271,18 @@ export const Profile: React.FC = () => {
     }
   };
 
-  const formatTimeAgo = (date: Date): string => {
-    const now = new Date();
-    const diff = now.getTime() - date.getTime();
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    if (days === 0) return 'Today';
-    if (days === 1) return 'Yesterday';
-    if (days < 30) return `${days} days ago`;
-    if (days < 365) return `${Math.floor(days / 30)} months ago`;
-    return `${Math.floor(days / 365)} years ago`;
-  };
-
-  const handleSaveProfile = () => {
-    // Here you would typically make an API call to save the profile
-    console.log('Saving profile:', editForm);
-    setIsEditModalOpen(false);
-    // Update the user data (in a real app, this would be handled by state management)
+  const handleSaveProfile = async () => {
+    if (!profileUser || !isOwnProfile) return;
+    
+    try {
+      const response = await usersAPI.updateUserProfile(profileUser.id, editForm);
+      setProfileUser(response.user);
+      setIsEditModalOpen(false);
+      console.log('Profile updated successfully');
+    } catch (error) {
+      console.error('Failed to update profile:', error);
+      // You could show an error message to the user here
+    }
   };
 
   const addExpertise = (expertise: string) => {
@@ -196,7 +334,7 @@ export const Profile: React.FC = () => {
               <h3 className="font-semibold text-primary mb-4">Top Solutions</h3>
               <div className="space-y-3">
                 {userSolutions.slice(0, 3).map(solution => {
-                  const relatedThread = mockThreads.find(t => t.id === solution.threadId);
+                  const relatedThread = userThreads.find(t => t.id === solution.threadId);
                   return (
                     <Link
                       key={solution.id}
@@ -334,21 +472,17 @@ export const Profile: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="bg-info/10 border border-info/20 rounded-lg p-4 text-center">
                     <Users className="text-info mx-auto mb-2" size={24} />
-                    <div className="text-2xl font-bold text-info">{mockUsers.length}</div>
+                    <div className="text-2xl font-bold text-info">-</div>
                     <div className="text-sm text-muted">Total Users</div>
                   </div>
                   <div className="bg-warning/10 border border-warning/20 rounded-lg p-4 text-center">
                     <Shield className="text-warning mx-auto mb-2" size={24} />
-                    <div className="text-2xl font-bold text-warning">
-                      {mockUsers.filter(u => u.role === UserRole.WARFIGHTER).length}
-                    </div>
+                    <div className="text-2xl font-bold text-warning">-</div>
                     <div className="text-sm text-muted">Warfighters</div>
                   </div>
                   <div className="bg-success/10 border border-success/20 rounded-lg p-4 text-center">
                     <Lightbulb className="text-success mx-auto mb-2" size={24} />
-                    <div className="text-2xl font-bold text-success">
-                      {mockUsers.filter(u => u.role === UserRole.INNOVATOR).length}
-                    </div>
+                    <div className="text-2xl font-bold text-success">-</div>
                     <div className="text-sm text-muted">Innovators</div>
                   </div>
                 </div>
@@ -362,16 +496,16 @@ export const Profile: React.FC = () => {
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-primary">{mockThreads.length}</div>
+                  <div className="text-2xl font-bold text-primary">{userThreads.length}</div>
                   <div className="text-sm text-muted">Active Threads</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-success">{mockSolutions.length}</div>
+                  <div className="text-2xl font-bold text-success">{userSolutions.length}</div>
                   <div className="text-sm text-muted">Total Solutions</div>
                 </div>
                 <div className="text-center">
                   <div className="text-2xl font-bold text-warning">
-                    {mockSolutions.filter(s => s.status === 'approved').length}
+                    {userSolutions.filter(s => s.status === 'approved').length}
                   </div>
                   <div className="text-sm text-muted">Approved Solutions</div>
                 </div>
@@ -599,7 +733,7 @@ export const Profile: React.FC = () => {
                     <h3 className="font-semibold text-primary mb-4">Solutions Contributed</h3>
                     <div className="space-y-3">
                       {userSolutions.map(solution => {
-                        const relatedThread = mockThreads.find(t => t.id === solution.threadId);
+                        const relatedThread = userThreads.find(t => t.id === solution.threadId);
                         return (
                           <Link
                             key={solution.id}
@@ -680,7 +814,7 @@ export const Profile: React.FC = () => {
                       <h3 className="font-semibold text-primary mb-4">Solutions Contributed</h3>
                       <div className="space-y-3">
                         {userSolutions.map(solution => {
-                          const relatedThread = mockThreads.find(t => t.id === solution.threadId);
+                          const relatedThread = userThreads.find(t => t.id === solution.threadId);
                           return (
                             <Link
                               key={solution.id}
@@ -861,9 +995,9 @@ export const Profile: React.FC = () => {
                               </div>
                               <div className="flex items-center space-x-1">
                                 <span className={`px-2 py-1 rounded text-xs font-medium ${
-                                  thread.priority === 'critical' ? 'bg-error/10 text-error' :
-                                  thread.priority === 'high' ? 'bg-warning/10 text-warning' :
-                                  thread.priority === 'medium' ? 'bg-info/10 text-info' :
+                                  thread.priority === Priority.CRITICAL ? 'bg-error/10 text-error' :
+                                  thread.priority === Priority.HIGH ? 'bg-warning/10 text-warning' :
+                                  thread.priority === Priority.MEDIUM ? 'bg-info/10 text-info' :
                                   'bg-success/10 text-success'
                                 }`}>
                                   {thread.priority.toUpperCase()}

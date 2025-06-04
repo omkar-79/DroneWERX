@@ -1,11 +1,9 @@
 import React from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { Header } from '../components/Header';
-import { Sidebar } from '../components/Sidebar';
-import { ThreadCard } from '../components/ThreadCard';
+import { Header, ThreadCard, Sidebar } from '../components';
 import { useThreadSearch, usePagination } from '../hooks';
-import { mockThreads } from '../data/mockData';
+import { Priority } from '../types';
 
 export const Home: React.FC = () => {
   const navigate = useNavigate();
@@ -19,8 +17,13 @@ export const Home: React.FC = () => {
     sortOption,
     setSortOption,
     filteredAndSortedThreads,
-    totalResults
-  } = useThreadSearch(mockThreads);
+    totalResults,
+    loading,
+    error,
+    categories,
+    allTags,
+    refetch
+  } = useThreadSearch();
 
   const {
     currentPage,
@@ -44,6 +47,47 @@ export const Home: React.FC = () => {
     navigate(`/thread/${threadId}`);
   };
 
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          onCreateThread={handleCreateThread}
+        />
+        <div className="flex items-center justify-center h-96">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          onCreateThread={handleCreateThread}
+        />
+        <div className="flex items-center justify-center h-96">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-error mb-4">Failed to Load Challenges</h2>
+            <p className="text-muted mb-4">{error}</p>
+            <button
+              onClick={refetch}
+              className="btn-primary px-6 py-3 rounded-lg"
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -63,6 +107,8 @@ export const Home: React.FC = () => {
             onSortChange={setSortOption}
             onClearFilters={clearFilters}
             totalResults={totalResults}
+            categories={categories}
+            tags={allTags}
           />
         </div>
 
@@ -96,15 +142,15 @@ export const Home: React.FC = () => {
                 <div className="hidden md:flex items-center space-x-4 text-sm text-muted">
                   <div className="flex items-center space-x-2">
                     <div className="w-3 h-3 bg-success rounded-full"></div>
-                    <span>{mockThreads.filter(t => t.isAcceptedSolution).length} Solved</span>
+                    <span>{filteredAndSortedThreads.filter(t => t.isAcceptedSolution).length} Solved</span>
                   </div>
                   <div className="flex items-center space-x-2">
                     <div className="w-3 h-3 bg-warning rounded-full"></div>
-                    <span>{mockThreads.filter(t => t.bounty).length} Bounties</span>
+                    <span>{filteredAndSortedThreads.filter(t => t.bounty).length} Bounties</span>
                   </div>
                   <div className="flex items-center space-x-2">
                     <div className="w-3 h-3 bg-error rounded-full"></div>
-                    <span>{mockThreads.filter(t => t.priority === 'critical').length} Critical</span>
+                    <span>{filteredAndSortedThreads.filter(t => t.priority === Priority.CRITICAL).length} Critical</span>
                   </div>
                 </div>
               </div>
@@ -217,28 +263,28 @@ export const Home: React.FC = () => {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="bg-surface border border-border rounded-lg p-4 text-center">
                   <div className="text-2xl font-bold text-primary mb-1">
-                    {mockThreads.length}
+                    {filteredAndSortedThreads.length}
                   </div>
                   <div className="text-sm text-muted">Total Challenges</div>
                 </div>
                 
                 <div className="bg-surface border border-border rounded-lg p-4 text-center">
                   <div className="text-2xl font-bold text-success mb-1">
-                    {mockThreads.filter(t => t.isAcceptedSolution).length}
+                    {filteredAndSortedThreads.filter(t => t.isAcceptedSolution).length}
                   </div>
                   <div className="text-sm text-muted">Solutions Found</div>
                 </div>
                 
                 <div className="bg-surface border border-border rounded-lg p-4 text-center">
                   <div className="text-2xl font-bold text-warning mb-1">
-                    {mockThreads.filter(t => t.bounty).length}
+                    {filteredAndSortedThreads.filter(t => t.bounty).length}
                   </div>
                   <div className="text-sm text-muted">Active Bounties</div>
                 </div>
                 
                 <div className="bg-surface border border-border rounded-lg p-4 text-center">
                   <div className="text-2xl font-bold text-info mb-1">
-                    1.2K
+                    {new Set(filteredAndSortedThreads.map(t => t.author.id)).size}
                   </div>
                   <div className="text-sm text-muted">Active Users</div>
                 </div>

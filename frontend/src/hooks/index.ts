@@ -1,16 +1,33 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import type { Thread, SearchFilters, SortOption } from '../types';
 import { filterThreads, sortThreads, debounce, getLocalStorage, setLocalStorage } from '../utils';
+import { useThreads } from './useThreads';
 
-// Hook for managing search and filters
-export const useThreadSearch = (threads: Thread[]) => {
+// Export new API-integrated hooks
+export { useThreads, useThread } from './useThreads';
+export { useSolutions, useSolution } from './useSolutions';
+export { useComments } from './useComments';
+export { useActivities } from './useActivities';
+
+// Enhanced hook for managing search and filters with real API data
+export const useThreadSearch = (initialFilters: SearchFilters = {}) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [filters, setFilters] = useState<SearchFilters>({});
+  const [filters, setFilters] = useState<SearchFilters>(initialFilters);
   const [sortOption, setSortOption] = useState<SortOption>({
     field: 'hotScore',
     direction: 'desc',
     label: 'Hot'
   });
+
+  // Use real API data
+  const {
+    threads: allThreads,
+    loading,
+    error,
+    categories,
+    allTags,
+    fetchThreads
+  } = useThreads({ autoFetch: true });
 
   // Debounced search query
   const [debouncedQuery, setDebouncedQuery] = useState('');
@@ -23,12 +40,12 @@ export const useThreadSearch = (threads: Thread[]) => {
     debouncedSetQuery(searchQuery);
   }, [searchQuery, debouncedSetQuery]);
 
-  // Filter and sort threads
+  // Filter and sort threads locally (can be optimized to use server-side filtering)
   const filteredAndSortedThreads = useMemo(() => {
     const filtersWithQuery = { ...filters, query: debouncedQuery };
-    const filtered = filterThreads(threads, filtersWithQuery);
+    const filtered = filterThreads(allThreads, filtersWithQuery);
     return sortThreads(filtered, sortOption);
-  }, [threads, debouncedQuery, filters, sortOption]);
+  }, [allThreads, debouncedQuery, filters, sortOption]);
 
   const updateFilter = useCallback((key: keyof SearchFilters, value: any) => {
     setFilters(prev => ({ ...prev, [key]: value }));
@@ -39,6 +56,11 @@ export const useThreadSearch = (threads: Thread[]) => {
     setSearchQuery('');
   }, []);
 
+  // Refresh data
+  const refetch = useCallback(() => {
+    fetchThreads();
+  }, [fetchThreads]);
+
   return {
     searchQuery,
     setSearchQuery,
@@ -48,7 +70,12 @@ export const useThreadSearch = (threads: Thread[]) => {
     sortOption,
     setSortOption,
     filteredAndSortedThreads,
-    totalResults: filteredAndSortedThreads.length
+    totalResults: filteredAndSortedThreads.length,
+    loading,
+    error,
+    categories,
+    allTags,
+    refetch
   };
 };
 
