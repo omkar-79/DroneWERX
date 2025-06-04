@@ -1,0 +1,532 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  WARFIGHTER
+  INNOVATOR
+  MODERATOR
+  ADMIN
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum ThreadStatus {
+  OPEN
+  IN_PROGRESS
+  SOLVED
+  CLOSED
+  ARCHIVED
+}
+
+enum Urgency {
+  ROUTINE
+  PRIORITY
+  IMMEDIATE
+  FLASH
+}
+
+enum TRLLevel {
+  TRL1
+  TRL2
+  TRL3
+  TRL4
+  TRL5
+  TRL6
+  TRL7
+  TRL8
+  TRL9
+}
+
+enum SolutionStatus {
+  DRAFT
+  SUBMITTED
+  PENDING
+  UNDER_REVIEW
+  PASS
+  FAIL
+  APPROVED
+  REJECTED
+}
+
+enum ClassificationLevel {
+  PUBLIC
+  RESTRICTED
+  CONFIDENTIAL
+  SECRET
+}
+
+enum VoteType {
+  UPVOTE
+  DOWNVOTE
+}
+
+enum NotificationType {
+  NEW_SOLUTION
+  SOLUTION_ACCEPTED
+  COMMENT_REPLY
+  THREAD_UPDATE
+  BOUNTY_AWARDED
+  BADGE_EARNED
+  MENTION
+}
+
+model User {
+  id                String     @id @default(uuid())
+  username          String     @unique
+  email             String     @unique
+  fullName          String
+  avatar            String?
+  role              UserRole   @default(INNOVATOR)
+  joinDate          DateTime   @default(now())
+  location          String?
+  bio               String?
+  expertise         String[]
+  isVerified        Boolean    @default(false)
+  isActive          Boolean    @default(true)
+  lastLoginAt       DateTime?
+  passwordHash      String
+  emailVerifiedAt   DateTime?
+  
+  // Military background fields
+  serviceBranch     String?
+  yearsOfService    String?
+  deploymentHistory String?
+  securityClearance String?
+  
+  // Security fields
+  twoFactorEnabled  Boolean    @default(false)
+  twoFactorSecret   String?
+  refreshToken      String?
+  
+  // Audit fields
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+  createdBy         String?
+  
+  // Relations
+  threads           Thread[]
+  solutions         Solution[]
+  comments          Comment[]
+  votes             Vote[]
+  notifications     Notification[]
+  bountiesCreated   Bounty[]   @relation("BountyCreator")
+  bountiesWon       Bounty[]   @relation("BountyWinner")
+  auditLogs         AuditLog[]
+  stats             UserStats?
+  attachments       Attachment[]
+  activities        ThreadActivity[]
+  threadViews       ThreadView[]
+  bookmarks         Bookmark[]
+  following         Follow[]   @relation("UserFollows")
+  followers         Follow[]   @relation("UserFollowers")
+  
+  @@map("users")
+}
+
+model UserStats {
+  id               String @id @default(uuid())
+  userId           String @unique
+  threadsCreated   Int    @default(0)
+  solutionsPosted  Int    @default(0)
+  commentsPosted   Int    @default(0)
+  upvotesReceived  Int    @default(0)
+  solutionsAccepted Int   @default(0)
+  
+  user             User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("user_stats")
+}
+
+model Category {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String
+  icon        String
+  color       String
+  parentId    String?
+  threadCount Int      @default(0)
+  isActive    Boolean  @default(true)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  parent      Category? @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children    Category[] @relation("CategoryHierarchy")
+  threads     Thread[]
+  
+  @@map("categories")
+}
+
+model Tag {
+  id          String @id @default(uuid())
+  name        String @unique
+  description String?
+  color       String @default("#3B82F6")
+  usageCount  Int    @default(0)
+  isActive    Boolean @default(true)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  threads     ThreadTag[]
+  
+  @@map("tags")
+}
+
+model Thread {
+  id                  String        @id @default(uuid())
+  title               String
+  description         String
+  authorId            String
+  categoryId          String
+  priority            Priority      @default(MEDIUM)
+  status              ThreadStatus  @default(OPEN)
+  urgency             Urgency       @default(ROUTINE)
+  trlLevel            TRLLevel?
+  domain              String?
+  location            String?
+  deadline            DateTime?
+  views               Int           @default(0)
+  upvotes             Int           @default(0)
+  downvotes           Int           @default(0)
+  solutionCount       Int           @default(0)
+  commentCount        Int           @default(0)
+  isAcceptedSolution  Boolean       @default(false)
+  acceptedSolutionId  String?
+  hotScore            Float         @default(0)
+  isSticky            Boolean       @default(false)
+  isClosed            Boolean       @default(false)
+  isAnonymous         Boolean       @default(false)
+  
+  // Security & Audit
+  classification      ClassificationLevel @default(PUBLIC)
+  isEncrypted         Boolean       @default(false)
+  encryptedFields     String[]      // Fields that are encrypted
+  
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+  
+  // Relations
+  author              User          @relation(fields: [authorId], references: [id])
+  category            Category      @relation(fields: [categoryId], references: [id])
+  tags                ThreadTag[]
+  solutions           Solution[]
+  comments            Comment[]
+  attachments         Attachment[]
+  bounty              Bounty?
+  activities          ThreadActivity[]
+  threadViews         ThreadView[]
+  
+  @@index([status, priority, createdAt])
+  @@index([authorId, isAnonymous])
+  @@index([categoryId, status])
+  @@map("threads")
+}
+
+model ThreadTag {
+  threadId  String
+  tagId     String
+  
+  thread    Thread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  tag       Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  
+  @@id([threadId, tagId])
+  @@map("thread_tags")
+}
+
+model ThreadView {
+  id        String   @id @default(uuid())
+  threadId  String
+  userId    String?
+  ipAddress String?
+  viewedAt  DateTime @default(now())
+  
+  // Relations
+  thread    Thread   @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([threadId, userId])
+  @@unique([threadId, ipAddress])
+  @@index([threadId, viewedAt])
+  @@map("thread_views")
+}
+
+model Solution {
+  id                String         @id @default(uuid())
+  threadId          String
+  authorId          String
+  title             String
+  content           String
+  isAccepted        Boolean        @default(false)
+  status            SolutionStatus @default(PENDING)
+  statusUpdatedBy   String?
+  statusUpdatedAt   DateTime?
+  statusNote        String?
+  upvotes           Int            @default(0)
+  downvotes         Int            @default(0)
+  isEdited          Boolean        @default(false)
+  
+  // Technical specifications
+  estimatedCost     Float?
+  implementationTime String?
+  trlLevel          TRLLevel?
+  
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  
+  // Relations
+  thread            Thread         @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  author            User           @relation(fields: [authorId], references: [id])
+  comments          Comment[]
+  attachments       Attachment[]
+  
+  @@index([threadId, status])
+  @@index([authorId, isAccepted])
+  @@map("solutions")
+}
+
+model Comment {
+  id          String   @id @default(uuid())
+  authorId    String
+  content     String
+  parentId    String?  // For nested replies
+  threadId    String?
+  solutionId  String?
+  upvotes     Int      @default(0)
+  downvotes   Int      @default(0)
+  isEdited    Boolean  @default(false)
+  editedAt    DateTime?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  author      User     @relation(fields: [authorId], references: [id])
+  thread      Thread?  @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  solution    Solution? @relation(fields: [solutionId], references: [id], onDelete: Cascade)
+  parent      Comment? @relation("CommentReplies", fields: [parentId], references: [id])
+  replies     Comment[] @relation("CommentReplies")
+  
+  @@index([threadId, createdAt])
+  @@index([solutionId, createdAt])
+  @@map("comments")
+}
+
+model Vote {
+  id         String   @id @default(uuid())
+  userId     String
+  targetId   String   // thread, solution, or comment ID
+  targetType String   // 'thread' | 'solution' | 'comment'
+  type       VoteType
+  
+  createdAt  DateTime @default(now())
+  
+  // Relations - no foreign key constraints for polymorphic relationship
+  user       User     @relation(fields: [userId], references: [id])
+  
+  @@unique([userId, targetId, targetType])
+  @@index([targetId, targetType])
+  @@map("votes")
+}
+
+model Attachment {
+  id           String   @id @default(uuid())
+  filename     String   // Object storage filename/key
+  originalName String
+  mimeType     String
+  size         Int
+  url          String   // Full public URL
+  thumbnailUrl String?  // Thumbnail URL for images
+  uploadedBy   String
+  threadId     String?
+  solutionId   String?
+  
+  // File type flags
+  isImage      Boolean  @default(false)
+  isDocument   Boolean  @default(false)
+  isVideo      Boolean  @default(false)
+  
+  // Media metadata
+  width        Int?     // For images/videos
+  height       Int?     // For images/videos
+  duration     Float?   // For videos in seconds
+  
+  // Object storage info
+  storageKey   String   @default("legacy") // Object storage key/path
+  bucketName   String   @default("dronewerx-media")
+  
+  // Security & integrity
+  virusScanned Boolean  @default(false)
+  scanResult   String?
+  checksum     String   @default("") // SHA256 hash for integrity
+  
+  // Processing status
+  isProcessed  Boolean  @default(false)
+  processingError String?
+  
+  // Access control
+  isPublic     Boolean  @default(true)
+  accessPolicy String?  // JSON string for complex access rules
+  
+  uploadedAt   DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  // Relations
+  uploader     User     @relation(fields: [uploadedBy], references: [id])
+  thread       Thread?  @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  solution     Solution? @relation(fields: [solutionId], references: [id], onDelete: Cascade)
+  
+  @@index([threadId])
+  @@index([solutionId])
+  @@index([uploadedBy])
+  @@index([storageKey])
+  @@index([mimeType])
+  @@map("attachments")
+}
+
+model Bounty {
+  id          String   @id @default(uuid())
+  threadId    String   @unique
+  amount      Float
+  currency    String   @default("USD")
+  description String
+  deadline    DateTime?
+  isActive    Boolean  @default(true)
+  winnerId    String?
+  createdBy   String
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  thread      Thread   @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  creator     User     @relation("BountyCreator", fields: [createdBy], references: [id])
+  winner      User?    @relation("BountyWinner", fields: [winnerId], references: [id])
+  
+  @@map("bounties")
+}
+
+model Notification {
+  id          String           @id @default(uuid())
+  userId      String
+  type        NotificationType
+  title       String
+  message     String
+  data        Json?
+  isRead      Boolean          @default(false)
+  actionUrl   String?
+  
+  createdAt   DateTime         @default(now())
+  
+  // Relations
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId, isRead, createdAt])
+  @@map("notifications")
+}
+
+model ThreadActivity {
+  id          String   @id @default(uuid())
+  threadId    String
+  userId      String
+  type        String   // 'solution_added' | 'comment_added' | etc.
+  description String
+  metadata    Json?
+  
+  timestamp   DateTime @default(now())
+  
+  // Relations
+  thread      Thread   @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id])
+  
+  @@index([threadId, timestamp])
+  @@map("thread_activities")
+}
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  userId      String?
+  action      String   // CREATE, UPDATE, DELETE, LOGIN, etc.
+  tableName   String
+  recordId    String?
+  oldData     Json?
+  newData     Json?
+  ipAddress   String?
+  userAgent   String?
+  timestamp   DateTime @default(now())
+  
+  // Relations
+  user        User?    @relation(fields: [userId], references: [id])
+  
+  @@index([userId, timestamp])
+  @@index([tableName, recordId])
+  @@index([action, timestamp])
+  @@map("audit_logs")
+}
+
+model Session {
+  id          String   @id @default(uuid())
+  userId      String
+  token       String   @unique
+  type        String   // 'access' | 'refresh'
+  expiresAt   DateTime
+  isRevoked   Boolean  @default(false)
+  ipAddress   String?
+  userAgent   String?
+  
+  createdAt   DateTime @default(now())
+  
+  @@index([userId, type, expiresAt])
+  @@index([token])
+  @@map("sessions")
+}
+
+model Bookmark {
+  id          String   @id @default(uuid())
+  userId      String
+  targetId    String   // thread, solution, or user ID
+  targetType  String   // 'thread' | 'solution' | 'user'
+  
+  createdAt   DateTime @default(now())
+  
+  // Relations
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, targetId, targetType])
+  @@index([userId, targetType])
+  @@index([targetId, targetType])
+  @@map("bookmarks")
+}
+
+model Follow {
+  id          String   @id @default(uuid())
+  followerId  String   // User who is following
+  followingId String   // User being followed
+  
+  createdAt   DateTime @default(now())
+  
+  // Relations
+  follower    User     @relation("UserFollows", fields: [followerId], references: [id], onDelete: Cascade)
+  following   User     @relation("UserFollowers", fields: [followingId], references: [id], onDelete: Cascade)
+  
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
+  @@map("follows")
+} 

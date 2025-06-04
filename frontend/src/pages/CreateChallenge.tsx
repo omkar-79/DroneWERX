@@ -44,7 +44,6 @@ interface FormData {
   bountyDescription: string;
   bountyDeadline: string;
   attachments: File[];
-  uploadedAttachments: any[]; // Store uploaded attachment IDs
   isAnonymous: boolean;
 }
 
@@ -72,7 +71,6 @@ export const CreateChallenge: React.FC = () => {
     bountyDescription: '',
     bountyDeadline: '',
     attachments: [],
-    uploadedAttachments: [],
     isAnonymous: false
   });
 
@@ -87,55 +85,36 @@ export const CreateChallenge: React.FC = () => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  // Handle file upload
-  const handleFileUpload = useCallback(async (files: FileList | null) => {
-    if (!files) return;
-    
+  // Handle file uploads
+  const handleFileUpload = useCallback((files: FileList | null) => {
+    if (!files || files.length === 0) return;
+
     const newFiles = Array.from(files).filter(file => {
-      const isValid = file.type.startsWith('image/') || file.type.startsWith('video/') || 
-                     file.type === 'application/pdf' || file.type.includes('document');
-      const isUnderLimit = file.size <= 50 * 1024 * 1024; // 50MB limit
-      return isValid && isUnderLimit;
+      // File size limit (100MB)
+      if (file.size > 100 * 1024 * 1024) {
+        setSubmitError(`File "${file.name}" is too large. Maximum size is 100MB.`);
+        return false;
+      }
+      
+      // Check if file already exists
+      if (formData.attachments.some(existing => existing.name === file.name && existing.size === file.size)) {
+        console.log(`File "${file.name}" already added`);
+        return false;
+      }
+      
+      return true;
     });
 
-    if (newFiles.length === 0) {
-      setSubmitError('No valid files selected. Please check file types and sizes.');
-      return;
-    }
+    if (newFiles.length === 0) return;
 
-    // Add files to display immediately
+    // Add files to local state
     setFormData(prev => ({
       ...prev,
       attachments: [...prev.attachments, ...newFiles]
     }));
 
-    // Upload files immediately to temporary storage
-    try {
-      console.log('Uploading files to temporary storage...');
-      const uploadResult = await mediaAPI.uploadTemporary(newFiles);
-      
-      if (uploadResult.attachments) {
-        setFormData(prev => ({
-          ...prev,
-          uploadedAttachments: [...prev.uploadedAttachments, ...uploadResult.attachments]
-        }));
-        console.log('Files uploaded successfully:', uploadResult.attachments.length);
-      }
-    } catch (error) {
-      console.error('File upload failed:', error);
-      setSubmitError(
-        error instanceof Error 
-          ? `File upload failed: ${error.message}` 
-          : 'Failed to upload files. Please try again.'
-      );
-      
-      // Remove failed files from display
-      setFormData(prev => ({
-        ...prev,
-        attachments: prev.attachments.filter(file => !newFiles.includes(file))
-      }));
-    }
-  }, []);
+    console.log('Files added to form:', newFiles.length);
+  }, [formData.attachments]);
 
   // Drag and drop handlers
   const handleDrag = useCallback((e: React.DragEvent) => {
@@ -167,11 +146,7 @@ export const CreateChallenge: React.FC = () => {
     
     setFormData(prev => ({
       ...prev,
-      attachments: prev.attachments.filter((_, i) => i !== index),
-      // Also remove from uploaded attachments if it was uploaded
-      uploadedAttachments: prev.uploadedAttachments.filter(att => 
-        att.originalName !== fileToRemove?.name
-      )
+      attachments: prev.attachments.filter((_, i) => i !== index)
     }));
   };
 
@@ -290,16 +265,16 @@ export const CreateChallenge: React.FC = () => {
       // Create the thread using real API
       const result = await createThread(threadData);
       
-      // Attach uploaded files to the thread if any
-      if (formData.uploadedAttachments.length > 0 && result && result.thread) {
+      // Upload files directly to the thread if any
+      if (formData.attachments.length > 0 && result && result.thread) {
         try {
-          const attachmentIds = formData.uploadedAttachments.map(att => att.id);
-          await mediaAPI.attachToThread(result.thread.id, attachmentIds);
-          console.log('Files attached to thread successfully');
+          console.log('Uploading files to thread...');
+          await mediaAPI.uploadToThread(result.thread.id, formData.attachments);
+          console.log('Files uploaded to thread successfully');
         } catch (fileError) {
-          console.error('File attachment failed:', fileError);
-          // Don't fail the whole process for file attachment errors
-          console.warn('Thread created but files failed to attach');
+          console.error('File upload failed:', fileError);
+          // Don't fail the whole process for file upload errors
+          console.warn('Thread created but files failed to upload');
         }
       }
       
@@ -481,7 +456,7 @@ export const CreateChallenge: React.FC = () => {
                     </button>
                   </p>
                   <p className="text-xs text-muted">
-                    Supports images, videos, PDFs, and documents (max 50MB each)
+                    Supports images, videos, PDFs, and documents (max 100MB each)
                   </p>
                   <input
                     ref={fileInputRef}
