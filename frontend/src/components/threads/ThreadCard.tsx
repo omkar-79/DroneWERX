@@ -93,17 +93,6 @@ export const ThreadCard: React.FC<ThreadCardProps> = ({
                 <span
                   className="inline-flex items-center px-3 py-1.5 text-xs font-semibold rounded-lg border shadow-sm"
                   style={{
-                    backgroundColor: `${getPriorityColor(thread.priority)}15`,
-                    color: getPriorityColor(thread.priority),
-                    borderColor: `${getPriorityColor(thread.priority)}30`
-                  }}
-                >
-                  {thread.priority.toUpperCase()}
-                </span>
-
-                <span
-                  className="inline-flex items-center px-3 py-1.5 text-xs font-semibold rounded-lg border shadow-sm"
-                  style={{
                     backgroundColor: `${getUrgencyColor(thread.urgency)}15`,
                     color: getUrgencyColor(thread.urgency),
                     borderColor: `${getUrgencyColor(thread.urgency)}30`

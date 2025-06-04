@@ -43,7 +43,6 @@ export interface Thread {
   authorId: string;
   category: Category;
   tags: Tag[];
-  priority: Priority;
   urgency: Urgency;
   status: ThreadStatus;
   trlLevel?: TRLLevel;
@@ -86,13 +85,6 @@ export interface Tag {
   description?: string;
   color: string;
   usageCount: number;
-}
-
-export enum Priority {
-  LOW = 'LOW',
-  MEDIUM = 'MEDIUM',
-  HIGH = 'HIGH',
-  CRITICAL = 'CRITICAL'
 }
 
 export enum ThreadStatus {
@@ -272,7 +264,6 @@ export interface SearchFilters {
   query?: string;
   categories?: string[];
   tags?: string[];
-  priorities?: Priority[];
   statuses?: ThreadStatus[];
   urgencies?: Urgency[];
   dateRange?: {
@@ -330,7 +321,6 @@ export interface CreateThreadForm {
   description: string;
   category: string;
   tags: string[];
-  priority: Priority;
   urgency: Urgency;
   location?: string;
   attachments: File[];

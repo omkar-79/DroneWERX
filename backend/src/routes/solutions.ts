@@ -801,4 +801,110 @@ router.post('/:id/vote', authenticateToken, async (req, res): Promise<void> => {
   }
 });
 
+// Update solution status (moderator/admin/thread author only)
+router.put('/:id/status', authenticateToken, async (req, res): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { status, note } = req.body;
+
+    // Accept frontend statuses and map to backend if needed
+    const allowedStatuses = ['PENDING', 'PASS', 'FAIL', 'APPROVED'];
+    if (!status || !allowedStatuses.includes(status)) {
+      res.status(400).json({ error: 'Invalid status value' });
+      return;
+    }
+
+    // Find the solution and thread
+    const solution = await prisma.solution.findUnique({
+      where: { id },
+      include: { thread: true },
+    });
+    if (!solution) {
+      res.status(404).json({ error: 'Solution not found' });
+      return;
+    }
+
+    // Only moderators, admins, or thread author can update status
+    const user = req.user!;
+    const isAllowed =
+      user.role === 'ADMIN' ||
+      user.role === 'MODERATOR' ||
+      user.id === solution.thread.authorId;
+    if (!isAllowed) {
+      res.status(403).json({ error: 'Not authorized to update solution status' });
+      return;
+    }
+
+    // Update status and note
+    const updated = await prisma.solution.update({
+      where: { id },
+      data: {
+        status,
+        statusNote: note,
+        statusUpdatedBy: user.id,
+        statusUpdatedAt: new Date(),
+      },
+      include: {
+        author: {
+          select: {
+            id: true,
+            username: true,
+            fullName: true,
+            avatar: true,
+            role: true,
+          },
+        },
+        thread: {
+          select: {
+            id: true,
+            title: true,
+            authorId: true,
+          },
+        },
+        _count: {
+          select: {
+            comments: true,
+          },
+        },
+      },
+    });
+
+    // Automatically update thread's isAcceptedSolution and status
+    if (status === 'APPROVED') {
+      await prisma.thread.update({
+        where: { id: solution.thread.id },
+        data: {
+          isAcceptedSolution: true,
+          status: 'SOLVED',
+        },
+      });
+    } else {
+      // Check if any other solution for this thread is still approved
+      const approvedCount = await prisma.solution.count({
+        where: {
+          threadId: solution.thread.id,
+          status: 'APPROVED',
+        },
+      });
+      if (approvedCount === 0) {
+        await prisma.thread.update({
+          where: { id: solution.thread.id },
+          data: {
+            isAcceptedSolution: false,
+            status: 'OPEN',
+          },
+        });
+      }
+    }
+
+    res.json({
+      message: 'Solution status updated successfully',
+      solution: updated,
+    });
+  } catch (error) {
+    console.error('Update solution status failed:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 export default router; 

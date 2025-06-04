@@ -348,7 +348,7 @@ export const solutionsAPI = {
   updateStatus: async (id: string, status: SolutionStatus, note?: string) => {
     return authenticatedFetch(`/solutions/${id}/status`, {
       method: 'PUT',
-      body: JSON.stringify({ status, note }),
+      body: JSON.stringify({ status: status.toUpperCase(), note }),
     });
   },
 

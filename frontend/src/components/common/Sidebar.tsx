@@ -24,6 +24,7 @@ interface SidebarProps {
   totalResults: number;
   categories?: Category[];
   tags?: Tag[];
+  solvedCount: number;
 }
 
 const sortOptions: SortOption[] = [
@@ -35,7 +36,6 @@ const sortOptions: SortOption[] = [
   { field: 'updatedAt', direction: 'desc', label: 'Recently Updated' }
 ];
 
-const priorityOptions: Priority[] = [Priority.LOW, Priority.MEDIUM, Priority.HIGH, Priority.CRITICAL];
 const statusOptions: ThreadStatus[] = [
   ThreadStatus.OPEN,
   ThreadStatus.IN_PROGRESS,
@@ -53,7 +53,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onClearFilters,
   totalResults,
   categories = [],
-  tags = []
+  tags = [],
+  solvedCount
 }) => {
   const { value: isFiltersOpen, toggle: toggleFilters } = useToggle(true);
   const { value: isCategoriesOpen, toggle: toggleCategories } = useToggle(true);
@@ -68,28 +69,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
     <div className="w-80 bg-surface border-r border-border flex flex-col h-screen">
       <div className="flex-1 overflow-y-auto">
         <div className="p-6 space-y-6">
-          {/* Sort Options */}
-          <div>
-            <h3 className="text-lg font-semibold mb-4 flex items-center text-primary">
-              <Target className="w-5 h-5 mr-2" />
-              Sort By
-            </h3>
-            <div className="space-y-1">
-              {sortOptions.map((option) => (
-                <button
-                  key={`${option.field}-${option.direction}`}
-                  onClick={() => onSortChange(option)}
-                  className={`w-full text-left px-3 py-2.5 rounded-lg transition-all ${sortOption.field === option.field && sortOption.direction === option.direction
-                      ? 'bg-primary text-white font-medium shadow-sm'
-                      : 'hover:bg-surface-hover text-secondary'
-                    }`}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
           {/* Quick Stats */}
           <div>
             <button
@@ -112,7 +91,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
                 <div className="grid grid-cols-2 gap-3">
                   <div className="bg-gradient-to-br from-success/10 to-success/5 rounded-lg p-3 text-center border border-success/20">
-                    <div className="text-xl font-bold text-success">47</div>
+                    <div className="text-xl font-bold text-success">{solvedCount}</div>
                     <div className="text-xs text-muted">Solved</div>
                   </div>
                   <div className="bg-gradient-to-br from-warning/10 to-warning/5 rounded-lg p-3 text-center border border-warning/20">
@@ -197,30 +176,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     <span className="font-medium">Clear All Filters</span>
                   </button>
                 )}
-
-                {/* Priority Filter */}
-                <div className="bg-background-alt rounded-lg p-4">
-                  <label className="block text-sm font-semibold mb-3 text-primary">Priority</label>
-                  <div className="space-y-2">
-                    {priorityOptions.map((priority) => (
-                      <label key={priority} className="flex items-center space-x-2 text-sm">
-                        <input
-                          type="checkbox"
-                          checked={filters.priorities?.includes(priority) || false}
-                          onChange={(e) => {
-                            const currentPriorities = filters.priorities || [];
-                            const newPriorities = e.target.checked
-                              ? [...currentPriorities, priority]
-                              : currentPriorities.filter(p => p !== priority);
-                            onFilterChange('priorities', newPriorities);
-                          }}
-                          className="rounded border-border focus:ring-primary"
-                        />
-                        <span className="capitalize font-medium">{priority}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
 
                 {/* Status Filter */}
                 <div className="bg-background-alt rounded-lg p-4">

@@ -27,14 +27,13 @@ import { useThreads } from '../hooks';
 import { useAuth } from '../contexts/AuthContext';
 import { filesAPI, mediaAPI } from '../services/api';
 import type { TRLLevel } from '../types';
-import { Priority, Urgency } from '../types';
+import { Urgency } from '../types';
 
 interface FormData {
   title: string;
   description: string;
   category: string;
   tags: string[];
-  priority: Priority;
   urgency: Urgency;
   trlLevel?: TRLLevel;
   domain: string;
@@ -61,7 +60,6 @@ export const CreateChallenge: React.FC = () => {
     description: '',
     category: '',
     tags: [],
-    priority: Priority.MEDIUM,
     urgency: Urgency.ROUTINE,
     trlLevel: undefined,
     domain: '',
@@ -266,7 +264,6 @@ export const CreateChallenge: React.FC = () => {
         description: formData.description,
         categoryId: formData.category,
         tags: formData.tags,
-        priority: formData.priority,
         urgency: formData.urgency,
         trlLevel: formData.trlLevel || undefined,
         domain: formData.domain.trim() || undefined,
@@ -587,24 +584,8 @@ export const CreateChallenge: React.FC = () => {
                 </div>
               </div>
 
-              {/* Priority, Urgency, and TRL Level */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-surface border border-border rounded-xl p-6">
-                  <label className="block text-sm font-semibold text-primary mb-3">
-                    Priority *
-                  </label>
-                  <select
-                    value={formData.priority}
-                    onChange={(e) => updateField('priority', e.target.value as Priority)}
-                    className="w-full px-4 py-3 border border-border rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20"
-                  >
-                    <option value={Priority.LOW}>Low</option>
-                    <option value={Priority.MEDIUM}>Medium</option>
-                    <option value={Priority.HIGH}>High</option>
-                    <option value={Priority.CRITICAL}>Critical</option>
-                  </select>
-                </div>
-
+              {/* Urgency and TRL Level */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="bg-surface border border-border rounded-xl p-6">
                   <label className="block text-sm font-semibold text-primary mb-3">
                     Urgency *
@@ -856,7 +837,7 @@ export const CreateChallenge: React.FC = () => {
                 </div>
                 <div className="flex items-start space-x-2">
                   <div className="w-1.5 h-1.5 bg-primary rounded-full mt-2 flex-shrink-0"></div>
-                  <p>Set appropriate priority and urgency levels</p>
+                  <p>Set appropriate urgency levels</p>
                 </div>
               </div>
             </div>
@@ -888,15 +869,8 @@ export const CreateChallenge: React.FC = () => {
                     dangerouslySetInnerHTML={{ __html: formData.description }}
                   />
 
-                  {/* Priority and Urgency */}
+                  {/* Urgency */}
                   <div className="flex items-center space-x-3 mb-3 text-xs">
-                    <span className={`px-2 py-1 rounded ${formData.priority === Priority.CRITICAL ? 'bg-red-100 text-red-700' :
-                        formData.priority === Priority.HIGH ? 'bg-orange-100 text-orange-700' :
-                          formData.priority === Priority.MEDIUM ? 'bg-yellow-100 text-yellow-700' :
-                            'bg-green-100 text-green-700'
-                      }`}>
-                      {formData.priority}
-                    </span>
                     <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded">
                       {formData.urgency}
                     </span>

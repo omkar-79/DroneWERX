@@ -1,6 +1,6 @@
 import { formatDistanceToNow, format } from 'date-fns';
 import type { Thread, SearchFilters, SortOption } from '../types';
-import { Priority, Urgency, ThreadStatus, TRLLevel } from '../types';
+import { Urgency, ThreadStatus, TRLLevel } from '../types';
 
 // Date formatting utilities
 export const formatTimeAgo = (date: Date): string => {
@@ -46,21 +46,6 @@ export const formatCurrency = (amount: number, currency: string = 'USD'): string
 };
 
 // Priority and urgency utilities
-export const getPriorityColor = (priority: Priority): string => {
-  switch (priority) {
-    case Priority.LOW:
-      return '#10b981'; // green
-    case Priority.MEDIUM:
-      return '#3b82f6'; // blue
-    case Priority.HIGH:
-      return '#f59e0b'; // orange
-    case Priority.CRITICAL:
-      return '#ef4444'; // red
-    default:
-      return '#6b7280'; // gray
-  }
-};
-
 export const getUrgencyColor = (urgency: Urgency): string => {
   switch (urgency) {
     case Urgency.ROUTINE:
@@ -140,13 +125,6 @@ export const filterThreads = (threads: Thread[], filters: SearchFilters): Thread
       }
     }
 
-    // Priority filter
-    if (filters.priorities && filters.priorities.length > 0) {
-      if (!filters.priorities.includes(thread.priority)) {
-        return false;
-      }
-    }
-
     // Status filter
     if (filters.statuses && filters.statuses.length > 0) {
       if (!filters.statuses.includes(thread.status)) {
@@ -219,15 +197,15 @@ export const sortThreads = (threads: Thread[], sortOption: SortOption): Thread[]
     switch (sortOption.field) {
       case 'createdAt':
       case 'updatedAt':
-        aValue = a[sortOption.field].getTime();
-        bValue = b[sortOption.field].getTime();
+        aValue = a[sortOption.field] ? new Date(a[sortOption.field] as any).getTime() : 0;
+        bValue = b[sortOption.field] ? new Date(b[sortOption.field] as any).getTime() : 0;
         break;
       case 'hotScore':
       case 'upvotes':
       case 'views':
       case 'solutionCount':
-        aValue = a[sortOption.field];
-        bValue = b[sortOption.field];
+        aValue = (a as any)[sortOption.field] ?? 0;
+        bValue = (b as any)[sortOption.field] ?? 0;
         break;
       default:
         return 0;

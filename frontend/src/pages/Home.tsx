@@ -5,6 +5,15 @@ import { Header, ThreadCard, Sidebar } from '../components';
 import { useThreadSearch, usePagination } from '../hooks';
 import { Priority } from '../types';
 
+const sortOptions = [
+  { field: 'hotScore' as const, direction: 'desc' as const, label: 'Hot' },
+  { field: 'createdAt' as const, direction: 'desc' as const, label: 'Most Recent' },
+  { field: 'upvotes' as const, direction: 'desc' as const, label: 'Most Upvoted' },
+  { field: 'views' as const, direction: 'desc' as const, label: 'Most Viewed' },
+  { field: 'solutionCount' as const, direction: 'desc' as const, label: 'Most Solutions' },
+  { field: 'updatedAt' as const, direction: 'desc' as const, label: 'Recently Updated' }
+];
+
 export const Home: React.FC = () => {
   const navigate = useNavigate();
   
@@ -109,6 +118,7 @@ export const Home: React.FC = () => {
             totalResults={totalResults}
             categories={categories}
             tags={allTags}
+            solvedCount={filteredAndSortedThreads.filter(t => t.isAcceptedSolution).length}
           />
         </div>
 
@@ -138,20 +148,22 @@ export const Home: React.FC = () => {
                   </p>
                 </div>
 
-                {/* Results Summary */}
-                <div className="hidden md:flex items-center space-x-4 text-sm text-muted">
-                  <div className="flex items-center space-x-2">
-                    <div className="w-3 h-3 bg-success rounded-full"></div>
-                    <span>{filteredAndSortedThreads.filter(t => t.isAcceptedSolution).length} Solved</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <div className="w-3 h-3 bg-warning rounded-full"></div>
-                    <span>{filteredAndSortedThreads.filter(t => t.bounty).length} Bounties</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <div className="w-3 h-3 bg-error rounded-full"></div>
-                    <span>{filteredAndSortedThreads.filter(t => t.priority === Priority.CRITICAL).length} Critical</span>
-                  </div>
+                {/* Sort By Dropdown */}
+                <div className="hidden md:block">
+                  <label className="text-sm font-medium text-primary mr-2">Sort By:</label>
+                  <select
+                    value={`${sortOption.field}-${sortOption.direction}`}
+                    onChange={e => {
+                      const [field, direction] = e.target.value.split('-');
+                      const option = sortOptions.find(opt => opt.field === field && opt.direction === direction);
+                      if (option) setSortOption(option);
+                    }}
+                    className="px-3 py-2 rounded-lg border border-border bg-surface text-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  >
+                    {sortOptions.map(option => (
+                      <option key={`${option.field}-${option.direction}`} value={`${option.field}-${option.direction}`}>{option.label}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
 

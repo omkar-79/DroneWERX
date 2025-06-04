@@ -971,13 +971,6 @@ export const Profile: React.FC = () => {
                               <span>{thread.upvotes} upvotes</span>
                             </div>
                             <div className="flex items-center space-x-1">
-                              <span className={`px-2 py-1 rounded text-xs font-medium ${thread.priority === Priority.CRITICAL ? 'bg-error/10 text-error' :
-                                thread.priority === Priority.HIGH ? 'bg-warning/10 text-warning' :
-                                  thread.priority === Priority.MEDIUM ? 'bg-info/10 text-info' :
-                                    'bg-success/10 text-success'
-                                }`}>
-                                {thread.priority.toUpperCase()}
-                              </span>
                               <ExternalLink size={12} className="text-muted" />
                             </div>
                           </div>

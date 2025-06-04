@@ -35,10 +35,11 @@ import { Header, SolutionEditor, SolutionStatusManager, MediaGallery } from '../
 import { useThread, useSolutions, useComments, useActivities } from '../hooks';
 import { useAuth } from '../contexts/AuthContext';
 import { useBookmarks } from '../contexts/BookmarkContext';
-import type { Thread, Solution, Comment, ThreadActivity, TRLLevel, SolutionStatus } from '../types';
-import { UserRole, Priority } from '../types';
+import type { Thread, Solution, Comment, ThreadActivity, TRLLevel } from '../types';
+import { UserRole, SolutionStatus } from '../types';
 import { threadsAPI } from '../services/api';
 import { usersAPI } from '../services/api';
+import { getUrgencyColor, getTRLColor } from '../utils';
 
 export const ThreadView: React.FC = () => {
   const { id: threadId } = useParams<{ id: string }>();
@@ -147,15 +148,6 @@ export const ThreadView: React.FC = () => {
       </div>
     );
   }
-
-  const getTRLColor = (trl?: TRLLevel): string => {
-    if (!trl) return 'bg-gray-100 text-gray-800';
-    const level = parseInt(trl.replace('trl', ''));
-    if (level <= 3) return 'bg-red-100 text-red-800';
-    if (level <= 6) return 'bg-orange-100 text-orange-800';
-    if (level <= 8) return 'bg-blue-100 text-blue-800';
-    return 'bg-green-100 text-green-800';
-  };
 
   const formatTimeAgo = (date: Date | string): string => {
     try {
@@ -448,30 +440,39 @@ export const ThreadView: React.FC = () => {
 
                   {/* Tags and Metadata */}
                   <div className="flex flex-wrap items-center gap-2 mb-4">
-                    {/* Priority */}
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${thread.priority === Priority.CRITICAL ? 'bg-error/10 text-error' :
-                      thread.priority === Priority.HIGH ? 'bg-warning/10 text-warning' :
-                        thread.priority === Priority.MEDIUM ? 'bg-info/10 text-info' :
-                          'bg-success/10 text-success'
-                      }`}>
-                      {thread.priority.toUpperCase()} Priority
+                    {/* Category Badge */}
+                    <span className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg border border-primary/20 bg-primary/10 text-primary shadow-sm">
+                      {thread.category.name}
                     </span>
-
                     {/* Urgency */}
-                    <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-medium">
+                    <span
+                      className="inline-flex items-center px-3 py-1.5 text-xs font-semibold rounded-lg border shadow-sm"
+                      style={{
+                        backgroundColor: `${getUrgencyColor(thread.urgency)}15`,
+                        color: getUrgencyColor(thread.urgency),
+                        borderColor: `${getUrgencyColor(thread.urgency)}30`
+                      }}
+                    >
                       {thread.urgency.toUpperCase()} Urgency
                     </span>
 
                     {/* TRL Level */}
                     {thread.trlLevel && (
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${getTRLColor(thread.trlLevel)}`}>
+                      <span
+                        className="inline-flex items-center space-x-1 px-3 py-1.5 text-xs font-semibold rounded-lg border shadow-sm"
+                        style={{
+                          backgroundColor: `${getTRLColor(thread.trlLevel)}15`,
+                          color: getTRLColor(thread.trlLevel),
+                          borderColor: `${getTRLColor(thread.trlLevel)}30`
+                        }}
+                      >
                         {thread.trlLevel.toUpperCase()}
                       </span>
                     )}
 
                     {/* Status */}
                     {thread.isAcceptedSolution && (
-                      <span className="px-3 py-1 bg-success/10 text-success rounded-full text-xs font-medium flex items-center space-x-1">
+                      <span className="inline-flex items-center space-x-1 px-3 py-1.5 bg-success/15 text-success text-xs font-semibold rounded-lg border border-success/30 shadow-sm">
                         <CheckCircle size={12} />
                         <span>SOLVED</span>
                       </span>
@@ -479,7 +480,7 @@ export const ThreadView: React.FC = () => {
 
                     {/* Bounty */}
                     {thread.bounty && (
-                      <span className="px-3 py-1 bg-warning/10 text-warning rounded-full text-xs font-medium flex items-center space-x-1">
+                      <span className="inline-flex items-center space-x-1 px-3 py-1.5 text-xs font-semibold rounded-lg border border-warning/20 bg-warning/10 text-warning shadow-sm">
                         <DollarSign size={12} />
                         <span>${thread.bounty.amount.toLocaleString()}</span>
                       </span>
@@ -554,6 +555,7 @@ export const ThreadView: React.FC = () => {
                     attachments={thread.attachments}
                     showActions={true}
                     onDelete={canEditThread() ? handleAttachmentDelete : undefined}
+                    className="max-w-xs md:max-w-md max-h-64"
                   />
                 </div>
               )}
@@ -713,6 +715,7 @@ export const ThreadView: React.FC = () => {
                               attachments={solution.attachments}
                               showActions={true}
                               onDelete={canEditSolution(solution) ? handleSolutionAttachmentDelete : undefined}
+                              className="max-w-xs md:max-w-md max-h-64"
                             />
                           </div>
                         )}
