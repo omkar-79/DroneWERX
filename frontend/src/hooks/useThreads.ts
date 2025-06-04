@@ -23,7 +23,7 @@ export const useThreads = (params: UseThreadsParams = {}) => {
   const [error, setError] = useState<string | null>(null);
   const [total, setTotal] = useState(0);
   const [hasMore, setHasMore] = useState(false);
-  
+
   // Refs to prevent unnecessary re-fetches
   const hasFetchedCategories = useRef(false);
   const hasFetchedTags = useRef(false);
@@ -31,7 +31,7 @@ export const useThreads = (params: UseThreadsParams = {}) => {
   const fetchThreads = useCallback(async (searchParams: UseThreadsParams = {}) => {
     setLoading(true);
     setError(null);
-    
+
     try {
       const response = await threadsAPI.getAll({
         page: searchParams.page || params.page || 1,
@@ -76,7 +76,7 @@ export const useThreads = (params: UseThreadsParams = {}) => {
 
   const fetchCategories = useCallback(async () => {
     if (hasFetchedCategories.current) return;
-    
+
     try {
       const response = await categoriesAPI.getAll();
       setCategories(response.categories || response.data || []);
@@ -88,7 +88,7 @@ export const useThreads = (params: UseThreadsParams = {}) => {
 
   const fetchTags = useCallback(async () => {
     if (hasFetchedTags.current) return;
-    
+
     try {
       const response = await tagsAPI.getAll();
       setAllTags(response.tags || response.data || []);
@@ -190,14 +190,14 @@ export const useThread = (threadId: string) => {
 
   const fetchThread = useCallback(async () => {
     if (!threadId) return;
-    
+
     setLoading(true);
     setError(null);
-    
+
     try {
       const response = await threadsAPI.getById(threadId);
       const thread = response.thread || response.data;
-      
+
       // Transform the thread data to match frontend types
       const transformedThread = thread ? {
         ...thread,
@@ -211,7 +211,7 @@ export const useThread = (threadId: string) => {
           createdAt: new Date(thread.bounty.createdAt),
         } : null,
       } : null;
-      
+
       setThread(transformedThread);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch thread');
@@ -223,7 +223,7 @@ export const useThread = (threadId: string) => {
 
   const updateThread = useCallback(async (updates: Partial<Thread>) => {
     if (!threadId) return;
-    
+
     try {
       const response = await threadsAPI.update(threadId, updates);
       setThread(response.thread || response.data);
@@ -236,7 +236,7 @@ export const useThread = (threadId: string) => {
 
   const deleteThread = useCallback(async () => {
     if (!threadId) return;
-    
+
     try {
       await threadsAPI.delete(threadId);
       setThread(null);
@@ -245,6 +245,69 @@ export const useThread = (threadId: string) => {
       throw err;
     }
   }, [threadId]);
+
+  const handleVote = useCallback(async (voteType: 'UPVOTE' | 'DOWNVOTE') => {
+    if (!thread) return;
+
+    try {
+      await threadsAPI.vote(threadId, voteType);
+
+      // Update local state optimistically
+      setThread(prevThread => {
+        if (!prevThread) return null;
+
+        const currentVote = prevThread.hasUserVoted;
+        const isUpvote = voteType === 'UPVOTE';
+
+        let newUpvotes = prevThread.upvotes;
+        let newDownvotes = prevThread.downvotes;
+        let newUserVote: 'up' | 'down' | null = null;
+
+        if (currentVote === null) {
+          // No previous vote
+          if (isUpvote) {
+            newUpvotes += 1;
+            newUserVote = 'up';
+          } else {
+            newDownvotes += 1;
+            newUserVote = 'down';
+          }
+        } else if (currentVote === 'up') {
+          if (isUpvote) {
+            // Remove upvote
+            newUpvotes -= 1;
+            newUserVote = null;
+          } else {
+            // Change to downvote
+            newUpvotes -= 1;
+            newDownvotes += 1;
+            newUserVote = 'down';
+          }
+        } else if (currentVote === 'down') {
+          if (!isUpvote) {
+            // Remove downvote
+            newDownvotes -= 1;
+            newUserVote = null;
+          } else {
+            // Change to upvote
+            newDownvotes -= 1;
+            newUpvotes += 1;
+            newUserVote = 'up';
+          }
+        }
+
+        return {
+          ...prevThread,
+          upvotes: newUpvotes,
+          downvotes: newDownvotes,
+          hasUserVoted: newUserVote,
+        };
+      });
+    } catch (err) {
+      console.error('Error voting on thread:', err);
+      throw err;
+    }
+  }, [thread, threadId]);
 
   useEffect(() => {
     fetchThread();
@@ -256,6 +319,7 @@ export const useThread = (threadId: string) => {
     error,
     updateThread,
     deleteThread,
+    handleVote,
     refetch: fetchThread,
   };
 }; 

@@ -56,7 +56,8 @@ export const ThreadView: React.FC = () => {
     thread,
     loading: threadLoading,
     error: threadError,
-    refetch: refetchThread
+    refetch: refetchThread,
+    handleVote
   } = useThread(threadId || '');
 
   const {
@@ -198,7 +199,7 @@ export const ThreadView: React.FC = () => {
     }
   };
 
-  const handleVote = async (type: 'up' | 'down', targetType: 'thread' | 'solution' | 'comment', targetId: string) => {
+  const handleVoteClick = async (type: 'up' | 'down', targetType: 'thread' | 'solution' | 'comment', targetId: string) => {
     if (!currentUser) {
       console.log('User must be logged in to vote');
       return;
@@ -208,19 +209,14 @@ export const ThreadView: React.FC = () => {
 
     try {
       if (targetType === 'thread') {
-        await threadsAPI.vote(targetId, voteType);
-        // Refetch thread to get updated vote counts
-        refetchThread();
+        await handleVote(voteType);
       } else if (targetType === 'solution') {
         await voteOnSolution(targetId, voteType);
-        // The voteOnSolution hook already updates local state
       } else if (targetType === 'comment') {
         await voteOnComment(targetId, voteType);
-        // The voteOnComment hook already updates local state
       }
     } catch (error) {
       console.error(`Failed to ${type}vote ${targetType}:`, error);
-      // TODO: Show error toast to user
     }
   };
 
@@ -506,17 +502,23 @@ export const ThreadView: React.FC = () => {
                 {/* Actions */}
                 <div className="flex items-center space-x-2 ml-4">
                   <button
-                    onClick={() => handleVote('up', 'thread', thread.id)}
-                    className="flex items-center space-x-1 px-3 py-2 rounded-lg hover:bg-surface-hover transition-colors"
+                    onClick={() => handleVoteClick('up', 'thread', thread.id)}
+                    className={`flex items-center space-x-1 px-3 py-2 rounded-lg transition-colors ${thread.hasUserVoted === 'up'
+                        ? 'bg-success/10 text-success'
+                        : 'hover:bg-surface-hover text-muted hover:text-success'
+                      }`}
                   >
-                    <ThumbsUp size={16} />
+                    <ThumbsUp size={16} fill={thread.hasUserVoted === 'up' ? 'currentColor' : 'none'} />
                     <span>{thread.upvotes}</span>
                   </button>
                   <button
-                    onClick={() => handleVote('down', 'thread', thread.id)}
-                    className="flex items-center space-x-1 px-3 py-2 rounded-lg hover:bg-surface-hover transition-colors"
+                    onClick={() => handleVoteClick('down', 'thread', thread.id)}
+                    className={`flex items-center space-x-1 px-3 py-2 rounded-lg transition-colors ${thread.hasUserVoted === 'down'
+                        ? 'bg-error/10 text-error'
+                        : 'hover:bg-surface-hover text-muted hover:text-error'
+                      }`}
                   >
-                    <ThumbsDown size={16} />
+                    <ThumbsDown size={16} fill={thread.hasUserVoted === 'down' ? 'currentColor' : 'none'} />
                     <span>{thread.downvotes}</span>
                   </button>
                   <button
@@ -657,23 +659,23 @@ export const ThreadView: React.FC = () => {
                           {/* Solution Actions */}
                           <div className="flex items-center space-x-2">
                             <button
-                              onClick={() => handleVote('up', 'solution', solution.id)}
+                              onClick={() => handleVoteClick('up', 'solution', solution.id)}
                               className={`flex items-center space-x-1 px-3 py-2 rounded-lg transition-colors ${solution.hasUserVoted === 'up'
                                 ? 'bg-success/10 text-success'
-                                : 'hover:bg-surface-hover'
+                                : 'hover:bg-surface-hover text-muted hover:text-success'
                                 }`}
                             >
-                              <ThumbsUp size={16} />
+                              <ThumbsUp size={16} fill={solution.hasUserVoted === 'up' ? 'currentColor' : 'none'} />
                               <span>{solution.upvotes}</span>
                             </button>
                             <button
-                              onClick={() => handleVote('down', 'solution', solution.id)}
+                              onClick={() => handleVoteClick('down', 'solution', solution.id)}
                               className={`flex items-center space-x-1 px-3 py-2 rounded-lg transition-colors ${solution.hasUserVoted === 'down'
                                 ? 'bg-error/10 text-error'
-                                : 'hover:bg-surface-hover'
+                                : 'hover:bg-surface-hover text-muted hover:text-error'
                                 }`}
                             >
-                              <ThumbsDown size={16} />
+                              <ThumbsDown size={16} fill={solution.hasUserVoted === 'down' ? 'currentColor' : 'none'} />
                               <span>{solution.downvotes}</span>
                             </button>
                             {canEditSolution(solution) && (
@@ -830,19 +832,23 @@ export const ThreadView: React.FC = () => {
                                     <p className="text-sm text-secondary mt-1">{comment.content}</p>
                                     <div className="flex items-center space-x-4 mt-2">
                                       <button
-                                        onClick={() => handleVote('up', 'comment', comment.id)}
-                                        className={`flex items-center space-x-1 text-xs hover:text-primary transition-colors ${comment.hasUserVoted === 'up' ? 'text-primary' : 'text-muted'
+                                        onClick={() => handleVoteClick('up', 'comment', comment.id)}
+                                        className={`flex items-center space-x-1 text-xs transition-colors ${comment.hasUserVoted === 'up'
+                                          ? 'text-success'
+                                          : 'text-muted hover:text-success'
                                           }`}
                                       >
-                                        <ThumbsUp size={12} />
+                                        <ThumbsUp size={12} fill={comment.hasUserVoted === 'up' ? 'currentColor' : 'none'} />
                                         <span>{comment.upvotes}</span>
                                       </button>
                                       <button
-                                        onClick={() => handleVote('down', 'comment', comment.id)}
-                                        className={`flex items-center space-x-1 text-xs hover:text-primary transition-colors ${comment.hasUserVoted === 'down' ? 'text-primary' : 'text-muted'
+                                        onClick={() => handleVoteClick('down', 'comment', comment.id)}
+                                        className={`flex items-center space-x-1 text-xs transition-colors ${comment.hasUserVoted === 'down'
+                                          ? 'text-error'
+                                          : 'text-muted hover:text-error'
                                           }`}
                                       >
-                                        <ThumbsDown size={12} />
+                                        <ThumbsDown size={12} fill={comment.hasUserVoted === 'down' ? 'currentColor' : 'none'} />
                                         <span>{comment.downvotes}</span>
                                       </button>
                                       <button

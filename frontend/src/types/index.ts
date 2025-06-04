@@ -39,31 +39,35 @@ export interface Thread {
   id: string;
   title: string;
   description: string;
-  authorId: string;
   author: User;
+  authorId: string;
   category: Category;
   tags: Tag[];
   priority: Priority;
-  status: ThreadStatus;
-  location?: string;
   urgency: Urgency;
+  status: ThreadStatus;
   trlLevel?: TRLLevel;
   domain?: string;
-  createdAt: Date;
-  updatedAt: Date;
-  views: number;
+  location?: string;
+  deadline?: string;
+  isAnonymous: boolean;
+  isSticky: boolean;
+  isAcceptedSolution: boolean;
   upvotes: number;
   downvotes: number;
-  solutionCount: number;
+  hasUserVoted: 'up' | 'down' | null;
   commentCount: number;
-  isAcceptedSolution: boolean;
-  acceptedSolutionId?: string;
-  attachments: Attachment[];
+  solutionCount: number;
+  viewCount: number;
   hotScore: number;
-  isSticky: boolean;
-  isClosed: boolean;
-  bounty?: Bounty;
-  isAnonymous: boolean;
+  bounty?: {
+    amount: number;
+    description: string;
+    deadline?: string;
+  };
+  attachments: Attachment[];
+  createdAt: Date;
+  updatedAt?: Date;
 }
 
 export interface Category {

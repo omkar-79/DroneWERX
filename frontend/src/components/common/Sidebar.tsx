@@ -37,9 +37,9 @@ const sortOptions: SortOption[] = [
 
 const priorityOptions: Priority[] = [Priority.LOW, Priority.MEDIUM, Priority.HIGH, Priority.CRITICAL];
 const statusOptions: ThreadStatus[] = [
-  ThreadStatus.OPEN, 
-  ThreadStatus.IN_PROGRESS, 
-  ThreadStatus.SOLVED, 
+  ThreadStatus.OPEN,
+  ThreadStatus.IN_PROGRESS,
+  ThreadStatus.SOLVED,
   ThreadStatus.CLOSED
 ];
 const urgencyOptions: Urgency[] = [Urgency.ROUTINE, Urgency.PRIORITY, Urgency.IMMEDIATE, Urgency.FLASH];
@@ -79,11 +79,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <button
                   key={`${option.field}-${option.direction}`}
                   onClick={() => onSortChange(option)}
-                  className={`w-full text-left px-3 py-2.5 rounded-lg transition-all ${
-                    sortOption.field === option.field && sortOption.direction === option.direction
+                  className={`w-full text-left px-3 py-2.5 rounded-lg transition-all ${sortOption.field === option.field && sortOption.direction === option.direction
                       ? 'bg-primary text-white font-medium shadow-sm'
                       : 'hover:bg-surface-hover text-secondary'
-                  }`}
+                    }`}
                 >
                   {option.label}
                 </button>
@@ -103,14 +102,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </div>
               <ChevronDown className={`w-4 h-4 transition-transform ${isStatsOpen ? 'rotate-180' : ''}`} />
             </button>
-            
+
             {isStatsOpen && (
               <div className="space-y-4">
                 <div className="bg-gradient-to-r from-primary/10 to-primary/5 rounded-xl p-4 border border-primary/20">
                   <div className="text-3xl font-bold text-primary">{totalResults}</div>
                   <div className="text-sm text-muted">Total Threads</div>
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-3">
                   <div className="bg-gradient-to-br from-success/10 to-success/5 rounded-lg p-3 text-center border border-success/20">
                     <div className="text-xl font-bold text-success">47</div>
@@ -137,7 +136,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </div>
               <ChevronDown className={`w-4 h-4 transition-transform ${isCategoriesOpen ? 'rotate-180' : ''}`} />
             </button>
-            
+
             {isCategoriesOpen && (
               <div className="space-y-2">
                 {categories.map((category) => (
@@ -155,7 +154,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       className="rounded border-border focus:ring-primary"
                     />
                     <div className="flex items-center space-x-2 flex-1">
-                      <div 
+                      <div
                         className="w-3 h-3 rounded-full"
                         style={{ backgroundColor: category.color }}
                       />
@@ -185,7 +184,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </div>
               <ChevronDown className={`w-4 h-4 transition-transform ${isFiltersOpen ? 'rotate-180' : ''}`} />
             </button>
-            
+
             {isFiltersOpen && (
               <div className="space-y-6">
                 {/* Clear Filters */}
@@ -286,11 +285,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                             : [...currentTags, tag.id];
                           onFilterChange('tags', newTags);
                         }}
-                        className={`px-3 py-1.5 text-xs rounded-full transition-all font-medium border ${
-                          filters.tags?.includes(tag.id)
+                        className={`px-3 py-1.5 text-xs rounded-full transition-all font-medium border ${filters.tags?.includes(tag.id)
                             ? 'text-white shadow-sm'
                             : 'hover:opacity-80'
-                        }`}
+                          }`}
                         style={{
                           backgroundColor: filters.tags?.includes(tag.id) ? tag.color : `${tag.color}15`,
                           color: filters.tags?.includes(tag.id) ? 'white' : tag.color,

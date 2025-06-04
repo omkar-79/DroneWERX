@@ -198,6 +198,18 @@ button.btn-primary:hover {
   border-color: var(--color-primary-hover);
 }
 
+/* Disable hover effects for no-hover class */
+button.no-hover:hover {
+  background-color: inherit !important;
+  border-color: inherit !important;
+  color: inherit !important;
+}
+
+button.no-hover.bg-primary:hover {
+  background-color: var(--color-primary) !important;
+  color: white !important;
+}
+
 /* Input Styles */
 input,
 textarea,

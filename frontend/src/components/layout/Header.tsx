@@ -1,12 +1,12 @@
 import React, { useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { 
-  Search, 
-  Bell, 
-  User, 
-  Shield, 
-  Settings, 
-  LogOut, 
+import {
+  Search,
+  Bell,
+  User,
+  Shield,
+  Settings,
+  LogOut,
   Menu,
   Plus,
   Target,
@@ -83,7 +83,7 @@ export const Header: React.FC<HeaderProps> = ({
             >
               <Menu size={20} />
             </button>
-            
+
             <Link to="/" className="flex items-center space-x-3">
               <div className="flex items-center justify-center w-10 h-10 bg-white/20 rounded-lg shadow-sm border border-white/30">
                 <Target className="w-6 h-6 text-white" />
@@ -97,14 +97,18 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Center - Search Bar */}
           <div className="hidden md:flex flex-1 justify-center mx-8">
-            <div className="relative w-full max-w-2xl">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <div className="relative w-full max-w-2xl flex items-center">
+              {!searchQuery && (
+                <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
+                  <Search className="w-5 h-5 text-gray-400" />
+                </div>
+              )}
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => onSearchChange(e.target.value)}
-                placeholder="Search drone challenges, solutions, or discussions..."
-                className="w-full pl-12 pr-4 py-2.5 bg-white rounded-lg focus:ring-2 focus:ring-blue-300 focus:outline-none transition-all shadow-sm placeholder-gray-500 text-gray-900"
+                placeholder="       Search drone challenges, solutions, or discussions..."
+                className="w-full pl-11 pr-4 py-2.5 bg-white rounded-lg focus:ring-2 focus:ring-blue-300 focus:outline-none transition-all shadow-sm placeholder-gray-500 text-gray-900 placeholder:translate-x-2"
               />
             </div>
           </div>
@@ -159,8 +163,8 @@ export const Header: React.FC<HeaderProps> = ({
                       <p className="text-xs text-muted">@{currentUser.username}</p>
                     </div>
                   </div>
-                  
-                  <Link 
+
+                  <Link
                     to="/profile"
                     className="flex items-center space-x-3 px-4 py-3 hover:bg-gray-50 transition-colors text-gray-700"
                     onClick={closeUserMenu}
@@ -168,19 +172,19 @@ export const Header: React.FC<HeaderProps> = ({
                     <User size={16} />
                     <span className="font-medium">Profile</span>
                   </Link>
-                  
-                  <Link 
-                    to="/settings" 
+
+                  <Link
+                    to="/settings"
                     className="flex items-center space-x-3 px-4 py-3 hover:bg-gray-50 transition-colors text-gray-700"
                     onClick={closeUserMenu}
                   >
                     <Settings size={16} />
                     <span className="font-medium">Settings</span>
                   </Link>
-                  
+
                   <div className="border-t border-gray-100 my-2"></div>
-                  
-                  <button 
+
+                  <button
                     onClick={handleLogout}
                     className="flex items-center space-x-3 px-4 py-3 hover:bg-red-50 w-full text-left text-red-600 transition-colors"
                   >
@@ -195,14 +199,18 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Mobile Search */}
         <div className="md:hidden pb-4">
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+          <div className="relative flex items-center">
+            {!searchQuery && (
+              <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
+                <Search className="w-5 h-5 text-gray-400" />
+              </div>
+            )}
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
-              placeholder="Search challenges and solutions..."
-              className="w-full pl-12 pr-4 py-2.5 bg-white rounded-lg focus:ring-2 focus:ring-blue-300 focus:outline-none transition-all shadow-sm placeholder-gray-500 text-gray-900"
+              placeholder="         Search challenges and solutions..."
+              className="w-full pl-11 pr-4 py-2.5 bg-white rounded-lg focus:ring-2 focus:ring-blue-300 focus:outline-none transition-all shadow-sm placeholder-gray-500 text-gray-900 placeholder:translate-x-2"
             />
           </div>
         </div>
@@ -211,29 +219,29 @@ export const Header: React.FC<HeaderProps> = ({
         {isMobileMenuOpen && (
           <div className="md:hidden border-t border-blue-700/30 py-4">
             <nav className="space-y-1">
-              <Link 
-                to="/" 
+              <Link
+                to="/"
                 className="block px-3 py-2 rounded-lg hover:bg-white/20 font-medium text-gray-100 transition-colors"
                 onClick={toggleMobileMenu}
               >
                 Home
               </Link>
-              <Link 
-                to="/categories" 
+              <Link
+                to="/categories"
                 className="block px-3 py-2 rounded-lg hover:bg-white/20 transition-colors text-blue-300"
                 onClick={toggleMobileMenu}
               >
                 Categories
               </Link>
-              <Link 
-                to="/leaderboard" 
+              <Link
+                to="/leaderboard"
                 className="block px-3 py-2 rounded-lg hover:bg-white/20 transition-colors text-blue-300"
                 onClick={toggleMobileMenu}
               >
                 Leaderboard
               </Link>
-              <Link 
-                to="/bounties" 
+              <Link
+                to="/bounties"
                 className="block px-3 py-2 rounded-lg hover:bg-white/20 transition-colors text-blue-300"
                 onClick={toggleMobileMenu}
               >
