@@ -50,11 +50,11 @@ export const ThreadView: React.FC = () => {
   const [editingSolution, setEditingSolution] = useState<string | null>(null);
 
   // Use real API data
-  const { 
-    thread, 
-    loading: threadLoading, 
-    error: threadError, 
-    refetch: refetchThread 
+  const {
+    thread,
+    loading: threadLoading,
+    error: threadError,
+    refetch: refetchThread
   } = useThread(threadId || '');
 
   const {
@@ -93,7 +93,7 @@ export const ThreadView: React.FC = () => {
       <div className="min-h-screen bg-background">
         <Header
           searchQuery=""
-          onSearchChange={() => {}}
+          onSearchChange={() => { }}
           onCreateThread={() => navigate('/create-challenge')}
         />
         <div className="flex items-center justify-center h-96">
@@ -109,7 +109,7 @@ export const ThreadView: React.FC = () => {
       <div className="min-h-screen bg-background">
         <Header
           searchQuery=""
-          onSearchChange={() => {}}
+          onSearchChange={() => { }}
           onCreateThread={() => navigate('/create-challenge')}
         />
         <div className="flex items-center justify-center h-96">
@@ -157,20 +157,20 @@ export const ThreadView: React.FC = () => {
   const formatTimeAgo = (date: Date | string): string => {
     try {
       const dateObj = date instanceof Date ? date : new Date(date);
-      
+
       // Check if the date is valid
       if (isNaN(dateObj.getTime())) {
         return 'Unknown';
       }
-      
+
       const now = new Date();
       const diff = now.getTime() - dateObj.getTime();
       const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-      
+
       if (days === 0) return 'Today';
       if (days === 1) return 'Yesterday';
       if (days < 0) return 'Future';
-      
+
       return `${days} days ago`;
     } catch (error) {
       console.error('Error formatting date:', error);
@@ -183,12 +183,12 @@ export const ThreadView: React.FC = () => {
     try {
       if (!date) return 'Not specified';
       const dateObj = date instanceof Date ? date : new Date(date);
-      
+
       // Check if the date is valid
       if (isNaN(dateObj.getTime())) {
         return 'Invalid date';
       }
-      
+
       return dateObj.toLocaleDateString();
     } catch (error) {
       console.error('Error formatting date:', error);
@@ -203,7 +203,7 @@ export const ThreadView: React.FC = () => {
     }
 
     const voteType = type === 'up' ? 'UPVOTE' : 'DOWNVOTE';
-    
+
     try {
       if (targetType === 'thread') {
         await threadsAPI.vote(targetId, voteType);
@@ -229,7 +229,7 @@ export const ThreadView: React.FC = () => {
     }
 
     try {
-      await usersAPI.addBookmark(thread.id, 'thread');
+      await usersAPI.addBookmark(currentUser.id, 'thread', thread.id);
       // TODO: Update local bookmark state
       console.log('Thread bookmarked successfully');
     } catch (error) {
@@ -258,13 +258,13 @@ export const ThreadView: React.FC = () => {
 
   const handleSolutionSubmit = async (content: string, files: File[]) => {
     if (!threadId || !thread) return;
-    
+
     // Generate a proper title that meets backend validation (min 5 chars)
     const contentPreview = content.replace(/[*#\[\]()]/g, '').trim().substring(0, 50);
-    const solutionTitle = contentPreview.length >= 5 
-      ? contentPreview 
+    const solutionTitle = contentPreview.length >= 5
+      ? contentPreview
       : `Solution for ${thread.title}`.substring(0, 200);
-    
+
     try {
       // Create solution with files
       await createSolution({
@@ -274,7 +274,7 @@ export const ThreadView: React.FC = () => {
         implementationTime: undefined,
         trlLevel: undefined
       }, files);
-      
+
       setShowSolutionForm(false);
     } catch (err) {
       console.error('Failed to create solution:', err);
@@ -349,16 +349,16 @@ export const ThreadView: React.FC = () => {
 
   const canEditThread = () => {
     if (!currentUser || !thread) return false;
-    return currentUser.id === thread.authorId || 
-           currentUser.role === UserRole.MODERATOR || 
-           currentUser.role === UserRole.ADMIN;
+    return currentUser.id === thread.authorId ||
+      currentUser.role === UserRole.MODERATOR ||
+      currentUser.role === UserRole.ADMIN;
   };
 
   const canDeleteAttachment = (attachment: any) => {
     if (!currentUser) return false;
-    return currentUser.id === attachment.uploadedBy || 
-           currentUser.role === UserRole.MODERATOR || 
-           currentUser.role === UserRole.ADMIN;
+    return currentUser.id === attachment.uploadedBy ||
+      currentUser.role === UserRole.MODERATOR ||
+      currentUser.role === UserRole.ADMIN;
   };
 
   const handleAttachmentDelete = async (attachmentId: string) => {
@@ -377,7 +377,7 @@ export const ThreadView: React.FC = () => {
     <div className="min-h-screen bg-background">
       <Header
         searchQuery=""
-        onSearchChange={() => {}}
+        onSearchChange={() => { }}
         onCreateThread={() => navigate('/create-challenge')}
       />
 
@@ -401,7 +401,7 @@ export const ThreadView: React.FC = () => {
               <div className="flex items-start justify-between mb-4">
                 <div className="flex-1">
                   <h1 className="text-3xl font-bold text-primary mb-4">{thread.title}</h1>
-                  
+
                   <div className="flex flex-wrap items-center gap-4 text-sm text-muted mb-4">
                     <div className="flex items-center space-x-2">
                       {thread.isAnonymous ? (
@@ -424,11 +424,10 @@ export const ThreadView: React.FC = () => {
                         </p>
                         {!thread.isAnonymous && (
                           <div className="flex items-center space-x-3 mt-1">
-                            <div className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              thread.author.role === UserRole.WARFIGHTER ? 'bg-primary/10 text-primary' :
+                            <div className={`px-2 py-1 rounded-full text-xs font-medium ${thread.author.role === UserRole.WARFIGHTER ? 'bg-primary/10 text-primary' :
                               thread.author.role === UserRole.INNOVATOR ? 'bg-warning/10 text-warning' :
-                              'bg-success/10 text-success'
-                            }`}>
+                                'bg-success/10 text-success'
+                              }`}>
                               {thread.author.role}
                             </div>
                           </div>
@@ -450,12 +449,11 @@ export const ThreadView: React.FC = () => {
                   {/* Tags and Metadata */}
                   <div className="flex flex-wrap items-center gap-2 mb-4">
                     {/* Priority */}
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                      thread.priority === Priority.CRITICAL ? 'bg-error/10 text-error' :
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${thread.priority === Priority.CRITICAL ? 'bg-error/10 text-error' :
                       thread.priority === Priority.HIGH ? 'bg-warning/10 text-warning' :
-                      thread.priority === Priority.MEDIUM ? 'bg-info/10 text-info' :
-                      'bg-success/10 text-success'
-                    }`}>
+                        thread.priority === Priority.MEDIUM ? 'bg-info/10 text-info' :
+                          'bg-success/10 text-success'
+                      }`}>
                       {thread.priority.toUpperCase()} Priority
                     </span>
 
@@ -517,7 +515,7 @@ export const ThreadView: React.FC = () => {
                     <ThumbsDown size={16} />
                     <span>{thread.downvotes}</span>
                   </button>
-                  <button 
+                  <button
                     onClick={handleBookmark}
                     className="p-2 rounded-lg hover:bg-surface-hover transition-colors"
                     title="Bookmark this thread"
@@ -534,7 +532,7 @@ export const ThreadView: React.FC = () => {
               </div>
 
               {/* Description */}
-              <div 
+              <div
                 className="prose prose-sm max-w-none text-secondary"
                 dangerouslySetInnerHTML={{ __html: thread.description }}
               />
@@ -557,31 +555,28 @@ export const ThreadView: React.FC = () => {
               <nav className="flex space-x-8">
                 <button
                   onClick={() => setActiveTab('solutions')}
-                  className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                    activeTab === 'solutions'
-                      ? 'border-primary text-primary'
-                      : 'border-transparent text-muted hover:text-secondary'
-                  }`}
+                  className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'solutions'
+                    ? 'border-primary text-primary'
+                    : 'border-transparent text-muted hover:text-secondary'
+                    }`}
                 >
                   Solutions ({threadSolutions.length})
                 </button>
                 <button
                   onClick={() => setActiveTab('activity')}
-                  className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                    activeTab === 'activity'
-                      ? 'border-primary text-primary'
-                      : 'border-transparent text-muted hover:text-secondary'
-                  }`}
+                  className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'activity'
+                    ? 'border-primary text-primary'
+                    : 'border-transparent text-muted hover:text-secondary'
+                    }`}
                 >
                   Activity ({threadActivities.length})
                 </button>
                 <button
                   onClick={() => setActiveTab('details')}
-                  className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                    activeTab === 'details'
-                      ? 'border-primary text-primary'
-                      : 'border-transparent text-muted hover:text-secondary'
-                  }`}
+                  className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'details'
+                    ? 'border-primary text-primary'
+                    : 'border-transparent text-muted hover:text-secondary'
+                    }`}
                 >
                   Technical Details
                 </button>
@@ -616,7 +611,7 @@ export const ThreadView: React.FC = () => {
                     {editingSolution === solution.id ? (
                       <SolutionEditor
                         solution={solution}
-                        onSubmit={(content, files) => 
+                        onSubmit={(content, files) =>
                           handleSolutionEdit(solution.id, content, files)
                         }
                         onCancel={() => setEditingSolution(null)}
@@ -624,9 +619,8 @@ export const ThreadView: React.FC = () => {
                       />
                     ) : (
                       <div
-                        className={`bg-surface border rounded-xl p-6 ${
-                          solution.isAccepted ? 'border-success shadow-lg' : 'border-border'
-                        }`}
+                        className={`bg-surface border rounded-xl p-6 ${solution.isAccepted ? 'border-success shadow-lg' : 'border-border'
+                          }`}
                       >
                         {/* Solution Header */}
                         <div className="flex items-start justify-between mb-4">
@@ -657,22 +651,20 @@ export const ThreadView: React.FC = () => {
                           <div className="flex items-center space-x-2">
                             <button
                               onClick={() => handleVote('up', 'solution', solution.id)}
-                              className={`flex items-center space-x-1 px-3 py-2 rounded-lg transition-colors ${
-                                solution.hasUserVoted === 'up'
-                                  ? 'bg-success/10 text-success'
-                                  : 'hover:bg-surface-hover'
-                              }`}
+                              className={`flex items-center space-x-1 px-3 py-2 rounded-lg transition-colors ${solution.hasUserVoted === 'up'
+                                ? 'bg-success/10 text-success'
+                                : 'hover:bg-surface-hover'
+                                }`}
                             >
                               <ThumbsUp size={16} />
                               <span>{solution.upvotes}</span>
                             </button>
                             <button
                               onClick={() => handleVote('down', 'solution', solution.id)}
-                              className={`flex items-center space-x-1 px-3 py-2 rounded-lg transition-colors ${
-                                solution.hasUserVoted === 'down'
-                                  ? 'bg-error/10 text-error'
-                                  : 'hover:bg-surface-hover'
-                              }`}
+                              className={`flex items-center space-x-1 px-3 py-2 rounded-lg transition-colors ${solution.hasUserVoted === 'down'
+                                ? 'bg-error/10 text-error'
+                                : 'hover:bg-surface-hover'
+                                }`}
                             >
                               <ThumbsDown size={16} />
                               <span>{solution.downvotes}</span>
@@ -700,7 +692,7 @@ export const ThreadView: React.FC = () => {
                         </div>
 
                         {/* Solution Content */}
-                        <div 
+                        <div
                           className="prose prose-sm max-w-none mb-6"
                           dangerouslySetInnerHTML={{ __html: solution.content }}
                         />
@@ -802,7 +794,7 @@ export const ThreadView: React.FC = () => {
                         {/* Solution Comments */}
                         <div className="border-t border-border pt-4">
                           <h4 className="font-medium text-primary mb-3">Discussion</h4>
-                          
+
                           {commentsLoading ? (
                             <div className="flex justify-center py-4">
                               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
@@ -830,32 +822,30 @@ export const ThreadView: React.FC = () => {
                                     </div>
                                     <p className="text-sm text-secondary mt-1">{comment.content}</p>
                                     <div className="flex items-center space-x-4 mt-2">
-                                      <button 
+                                      <button
                                         onClick={() => handleVote('up', 'comment', comment.id)}
-                                        className={`flex items-center space-x-1 text-xs hover:text-primary transition-colors ${
-                                          comment.hasUserVoted === 'up' ? 'text-primary' : 'text-muted'
-                                        }`}
+                                        className={`flex items-center space-x-1 text-xs hover:text-primary transition-colors ${comment.hasUserVoted === 'up' ? 'text-primary' : 'text-muted'
+                                          }`}
                                       >
                                         <ThumbsUp size={12} />
                                         <span>{comment.upvotes}</span>
                                       </button>
-                                      <button 
+                                      <button
                                         onClick={() => handleVote('down', 'comment', comment.id)}
-                                        className={`flex items-center space-x-1 text-xs hover:text-primary transition-colors ${
-                                          comment.hasUserVoted === 'down' ? 'text-primary' : 'text-muted'
-                                        }`}
+                                        className={`flex items-center space-x-1 text-xs hover:text-primary transition-colors ${comment.hasUserVoted === 'down' ? 'text-primary' : 'text-muted'
+                                          }`}
                                       >
                                         <ThumbsDown size={12} />
                                         <span>{comment.downvotes}</span>
                                       </button>
-                                      <button 
+                                      <button
                                         onClick={() => setReplyingTo(comment.id)}
                                         className="text-xs text-muted hover:text-primary"
                                       >
                                         Reply
                                       </button>
                                     </div>
-                                    
+
                                     {/* Nested Replies */}
                                     {comment.replies && comment.replies.map((reply) => (
                                       <div key={reply.id} className="flex space-x-3 mt-3 ml-6">
@@ -876,7 +866,7 @@ export const ThreadView: React.FC = () => {
                                   </div>
                                 </div>
                               ))}
-                              
+
                               {threadComments.length === 0 && (
                                 <div className="text-center py-8 text-muted">
                                   <MessageCircle size={24} className="mx-auto mb-2 opacity-50" />
@@ -935,7 +925,7 @@ export const ThreadView: React.FC = () => {
             {activeTab === 'activity' && (
               <div className="space-y-4">
                 <h3 className="font-semibold text-primary">Recent Activity</h3>
-                
+
                 {activitiesLoading ? (
                   <div className="flex justify-center py-4">
                     <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
@@ -960,11 +950,10 @@ export const ThreadView: React.FC = () => {
                           </p>
                           <p className="text-xs text-muted mt-1">{formatTimeAgo(activity.timestamp)}</p>
                         </div>
-                        <div className={`w-3 h-3 rounded-full flex-shrink-0 mt-2 ${
-                          activity.type === 'solution_accepted' ? 'bg-success' :
+                        <div className={`w-3 h-3 rounded-full flex-shrink-0 mt-2 ${activity.type === 'solution_accepted' ? 'bg-success' :
                           activity.type === 'bounty_awarded' ? 'bg-warning' :
-                          'bg-info'
-                        }`} />
+                            'bg-info'
+                          }`} />
                       </div>
                     ))}
                     {threadActivities.length === 0 && (

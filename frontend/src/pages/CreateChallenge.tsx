@@ -52,10 +52,10 @@ export const CreateChallenge: React.FC = () => {
   const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const descriptionRef = useRef<HTMLDivElement>(null);
-  
+
   // Get real categories and tags from API
   const { categories, allTags, createThread, loading: threadsLoading } = useThreads({ autoFetch: true });
-  
+
   const [formData, setFormData] = useState<FormData>({
     title: '',
     description: '',
@@ -95,13 +95,13 @@ export const CreateChallenge: React.FC = () => {
         setSubmitError(`File "${file.name}" is too large. Maximum size is 100MB.`);
         return false;
       }
-      
+
       // Check if file already exists
       if (formData.attachments.some(existing => existing.name === file.name && existing.size === file.size)) {
         console.log(`File "${file.name}" already added`);
         return false;
       }
-      
+
       return true;
     });
 
@@ -143,7 +143,7 @@ export const CreateChallenge: React.FC = () => {
   // Remove attachment
   const removeAttachment = (index: number) => {
     const fileToRemove = formData.attachments[index];
-    
+
     setFormData(prev => ({
       ...prev,
       attachments: prev.attachments.filter((_, i) => i !== index)
@@ -176,6 +176,24 @@ export const CreateChallenge: React.FC = () => {
         ...prev,
         description: descriptionRef.current?.innerHTML || ''
       }));
+    }
+  };
+
+  // Add this helper function after the imports
+  const formatDateForAPI = (dateString: string): string | undefined => {
+    if (!dateString) return undefined;
+    try {
+      // Create a Date object from the input
+      const date = new Date(dateString);
+      // Check if the date is valid
+      if (isNaN(date.getTime())) {
+        return undefined;
+      }
+      // Format the date as ISO 8601 with UTC timezone
+      return date.toISOString();
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return undefined;
     }
   };
 
@@ -253,18 +271,18 @@ export const CreateChallenge: React.FC = () => {
         trlLevel: formData.trlLevel || undefined,
         domain: formData.domain.trim() || undefined,
         location: formData.location.trim() || undefined,
-        deadline: formData.deadline || undefined,
+        deadline: formData.deadline ? formatDateForAPI(formData.deadline) : undefined,
         isAnonymous: formData.isAnonymous,
         bountyAmount: formData.bountyAmount && parseFloat(formData.bountyAmount) > 0 ? parseFloat(formData.bountyAmount) : undefined,
         bountyDescription: formData.bountyDescription.trim() || undefined,
-        bountyDeadline: formData.bountyDeadline || undefined,
+        bountyDeadline: formData.bountyDeadline ? formatDateForAPI(formData.bountyDeadline) : undefined,
       };
 
       console.log('Creating thread with data:', threadData);
 
       // Create the thread using real API
       const result = await createThread(threadData);
-      
+
       // Upload files directly to the thread if any
       if (formData.attachments.length > 0 && result && result.thread) {
         try {
@@ -277,28 +295,12 @@ export const CreateChallenge: React.FC = () => {
           console.warn('Thread created but files failed to upload');
         }
       }
-      
-      // Navigate to the created thread
-      if (result && result.thread) {
-        navigate(`/thread/${result.thread.id}`);
-      } else {
-        navigate('/home');
-      }
+
+      // Navigate to the new thread
+      navigate(`/thread/${result.thread.id}`);
     } catch (error) {
-      console.error('Error creating challenge:', error);
-      
-      // Handle specific authentication errors
-      if (error instanceof Error && error.message.includes('Authentication')) {
-        setSubmitError('Your session has expired. Please log in again.');
-        // Could redirect to login page here
-        // navigate('/login');
-      } else {
-        setSubmitError(
-          error instanceof Error 
-            ? error.message 
-            : 'Failed to create challenge. Please try again.'
-        );
-      }
+      console.error('Error creating thread:', error);
+      setSubmitError(error instanceof Error ? error.message : 'Failed to create thread');
     } finally {
       setIsSubmitting(false);
     }
@@ -322,7 +324,7 @@ export const CreateChallenge: React.FC = () => {
     <div className="min-h-screen bg-background">
       <Header
         searchQuery=""
-        onSearchChange={() => {}}
+        onSearchChange={() => { }}
         onCreateThread={() => navigate('/create-challenge')}
       />
 
@@ -370,7 +372,7 @@ export const CreateChallenge: React.FC = () => {
                 <label className="block text-sm font-semibold text-primary mb-3">
                   Detailed Description *
                 </label>
-                
+
                 {/* Rich Text Toolbar */}
                 <div className="flex items-center space-x-2 p-3 border border-border rounded-t-lg bg-background-alt">
                   <button
@@ -431,14 +433,13 @@ export const CreateChallenge: React.FC = () => {
                 <label className="block text-sm font-semibold text-primary mb-3">
                   Attachments
                 </label>
-                
+
                 {/* Drop Zone */}
                 <div
-                  className={`border-2 border-dashed rounded-lg p-8 text-center transition-all ${
-                    dragActive 
-                      ? 'border-primary bg-primary/5' 
+                  className={`border-2 border-dashed rounded-lg p-8 text-center transition-all ${dragActive
+                      ? 'border-primary bg-primary/5'
                       : 'border-border hover:border-primary/50'
-                  }`}
+                    }`}
                   onDragEnter={handleDrag}
                   onDragLeave={handleDrag}
                   onDragOver={handleDrag}
@@ -543,7 +544,7 @@ export const CreateChallenge: React.FC = () => {
                         <Plus size={16} />
                       </button>
                     </div>
-                    
+
                     {/* Popular Tags */}
                     <div className="flex flex-wrap gap-2">
                       {allTags.slice(0, 6).map(tag => (
@@ -709,7 +710,7 @@ export const CreateChallenge: React.FC = () => {
                     />
                     <span className="text-muted">USD</span>
                   </div>
-                  
+
                   {formData.bountyAmount && parseFloat(formData.bountyAmount) > 0 && (
                     <>
                       <div>
@@ -724,7 +725,7 @@ export const CreateChallenge: React.FC = () => {
                           className="w-full px-4 py-3 border border-border rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20"
                         />
                       </div>
-                      
+
                       <div>
                         <label className="block text-sm font-medium text-primary mb-2">
                           Bounty Deadline (Optional)
@@ -882,19 +883,18 @@ export const CreateChallenge: React.FC = () => {
                 <h3 className="font-semibold text-primary mb-4">Preview</h3>
                 <div className="border border-border rounded-lg p-4 text-sm">
                   <h4 className="font-semibold text-primary mb-2">{formData.title}</h4>
-                  <div 
+                  <div
                     className="text-muted mb-3 line-clamp-3"
                     dangerouslySetInnerHTML={{ __html: formData.description }}
                   />
-                  
+
                   {/* Priority and Urgency */}
                   <div className="flex items-center space-x-3 mb-3 text-xs">
-                    <span className={`px-2 py-1 rounded ${
-                      formData.priority === Priority.CRITICAL ? 'bg-red-100 text-red-700' :
-                      formData.priority === Priority.HIGH ? 'bg-orange-100 text-orange-700' :
-                      formData.priority === Priority.MEDIUM ? 'bg-yellow-100 text-yellow-700' :
-                      'bg-green-100 text-green-700'
-                    }`}>
+                    <span className={`px-2 py-1 rounded ${formData.priority === Priority.CRITICAL ? 'bg-red-100 text-red-700' :
+                        formData.priority === Priority.HIGH ? 'bg-orange-100 text-orange-700' :
+                          formData.priority === Priority.MEDIUM ? 'bg-yellow-100 text-yellow-700' :
+                            'bg-green-100 text-green-700'
+                      }`}>
                       {formData.priority}
                     </span>
                     <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded">

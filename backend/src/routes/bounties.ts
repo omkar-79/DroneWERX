@@ -12,13 +12,13 @@ const createBountySchema = z.object({
   amount: z.number().positive().min(1),
   currency: z.string().min(3).max(3).default('USD'),
   description: z.string().min(10).max(500),
-  deadline: z.string().datetime().optional(),
+  deadline: z.string().datetime().transform((date) => new Date(date)).optional(),
 });
 
 const updateBountySchema = z.object({
   amount: z.number().positive().min(1).optional(),
   description: z.string().min(10).max(500).optional(),
-  deadline: z.string().datetime().optional(),
+  deadline: z.string().datetime().transform((date) => new Date(date)).optional(),
   isActive: z.boolean().optional(),
 });
 
@@ -294,7 +294,7 @@ router.post('/:id/award', authenticateToken, async (req, res): Promise<void> => 
 
     const bounty = await prisma.bounty.findUnique({
       where: { id },
-      include: { 
+      include: {
         thread: true,
         creator: {
           select: { id: true, username: true, fullName: true }

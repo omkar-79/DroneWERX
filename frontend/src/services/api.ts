@@ -1,9 +1,9 @@
-import type { 
-  Thread, 
-  Solution, 
-  Comment, 
-  User, 
-  Category, 
+import type {
+  Thread,
+  Solution,
+  Comment,
+  User,
+  Category,
   Tag,
   Priority,
   Urgency,
@@ -28,7 +28,7 @@ const isAuthenticated = (): boolean => {
     console.warn('No authentication token found');
     return false;
   }
-  
+
   try {
     // Basic JWT structure check (header.payload.signature)
     const parts = token.split('.');
@@ -36,17 +36,17 @@ const isAuthenticated = (): boolean => {
       console.warn('Invalid token format');
       return false;
     }
-    
+
     // Check if token is expired (basic check)
     const payload = JSON.parse(atob(parts[1]));
     const currentTime = Math.floor(Date.now() / 1000);
-    
+
     if (payload.exp && payload.exp < currentTime) {
       console.warn('Token has expired');
       localStorage.removeItem('accessToken'); // Remove expired token
       return false;
     }
-    
+
     console.log('Token appears valid, expires at:', new Date(payload.exp * 1000));
     return true;
   } catch (error) {
@@ -61,9 +61,9 @@ const authenticatedFetch = async (url: string, options: RequestInit = {}) => {
   if (!isAuthenticated()) {
     throw new Error('Authentication required. Please log in again.');
   }
-  
+
   const token = getAuthToken();
-  
+
   const defaultHeaders: HeadersInit = {
     'Content-Type': 'application/json',
   };
@@ -83,7 +83,7 @@ const authenticatedFetch = async (url: string, options: RequestInit = {}) => {
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-    
+
     // Log detailed error information for debugging
     console.error('API Error:', {
       url: `${API_BASE_URL}${url}`,
@@ -93,21 +93,21 @@ const authenticatedFetch = async (url: string, options: RequestInit = {}) => {
       hasToken: !!token,
       tokenPrefix: token ? token.substring(0, 20) + '...' : 'none'
     });
-    
+
     // Handle specific auth errors
     if (response.status === 401) {
       localStorage.removeItem('accessToken'); // Remove invalid token
       throw new Error('Authentication failed. Please log in again.');
     }
-    
+
     // Show detailed validation errors if available
     if (errorData.details && Array.isArray(errorData.details)) {
-      const validationErrors = errorData.details.map((detail: any) => 
+      const validationErrors = errorData.details.map((detail: any) =>
         `${detail.path?.join('.')}: ${detail.message}`
       ).join(', ');
       throw new Error(`Validation failed: ${validationErrors}`);
     }
-    
+
     throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
   }
 
@@ -176,7 +176,7 @@ export const threadsAPI = {
     sortOrder?: 'asc' | 'desc';
   }) => {
     const searchParams = new URLSearchParams();
-    
+
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
         if (value !== undefined) {
@@ -246,7 +246,7 @@ export const threadsAPI = {
     limit?: number;
   }) => {
     const searchParams = new URLSearchParams();
-    
+
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
         if (value !== undefined) {
@@ -293,26 +293,26 @@ export const solutionsAPI = {
     trlLevel?: TRLLevel;
   }, attachments: File[], mediaFiles: File[]) => {
     const formData = new FormData();
-    
+
     // Add solution data
     Object.entries(solutionData).forEach(([key, value]) => {
       if (value !== undefined) {
         formData.append(key, value.toString());
       }
     });
-    
+
     // Add all files with the 'files' field name (as expected by backend)
     const allFiles = [...attachments, ...mediaFiles];
     allFiles.forEach(file => {
       formData.append('files', file);
     });
-    
+
     const token = getAuthToken();
     const headers: HeadersInit = {};
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }
-    
+
     const response = await fetch(`${API_BASE_URL}/solutions/with-media`, {
       method: 'POST',
       headers,
@@ -373,10 +373,26 @@ export const commentsAPI = {
     content: string;
     parentId?: string;
   }) => {
-    return authenticatedFetch('/comments', {
-      method: 'POST',
-      body: JSON.stringify(commentData),
-    });
+    // Determine the correct endpoint based on whether it's a thread or solution comment
+    if (commentData.threadId) {
+      return authenticatedFetch(`/threads/${commentData.threadId}/comments`, {
+        method: 'POST',
+        body: JSON.stringify({
+          content: commentData.content,
+          parentId: commentData.parentId
+        }),
+      });
+    } else if (commentData.solutionId) {
+      return authenticatedFetch(`/solutions/${commentData.solutionId}/comments`, {
+        method: 'POST',
+        body: JSON.stringify({
+          content: commentData.content,
+          parentId: commentData.parentId
+        }),
+      });
+    } else {
+      throw new Error('Either threadId or solutionId must be provided');
+    }
   },
 
   update: async (id: string, content: string) => {
@@ -431,7 +447,7 @@ export const usersAPI = {
     limit?: number;
   }) => {
     const searchParams = new URLSearchParams();
-    
+
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
         if (value !== undefined) {
@@ -449,7 +465,7 @@ export const usersAPI = {
     limit?: number;
   }) => {
     const searchParams = new URLSearchParams();
-    
+
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
         if (value !== undefined) {
@@ -475,7 +491,7 @@ export const usersAPI = {
     limit?: number;
   }) => {
     const searchParams = new URLSearchParams();
-    
+
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
         if (value !== undefined) {
@@ -511,7 +527,7 @@ export const usersAPI = {
     limit?: number;
   }) => {
     const searchParams = new URLSearchParams();
-    
+
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
         if (value !== undefined) {
@@ -525,10 +541,10 @@ export const usersAPI = {
   },
 
   // New bookmark endpoints
-  addBookmark: async (id: string, type: 'thread' | 'solution' | 'user') => {
-    return authenticatedFetch(`/users/${id}/bookmark`, {
+  addBookmark: async (userId: string, type: 'thread' | 'solution' | 'user', targetId: string) => {
+    return authenticatedFetch(`/users/${userId}/bookmark`, {
       method: 'POST',
-      body: JSON.stringify({ type }),
+      body: JSON.stringify({ type, targetId }),
     });
   },
 
@@ -538,7 +554,7 @@ export const usersAPI = {
     limit?: number;
   }) => {
     const searchParams = new URLSearchParams();
-    
+
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
         if (value !== undefined) {
@@ -557,7 +573,7 @@ export const usersAPI = {
     limit?: number;
   }) => {
     const searchParams = new URLSearchParams();
-    
+
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
         if (value !== undefined) {
@@ -639,8 +655,8 @@ export const mediaAPI = {
 
   // Delete attachment
   deleteAttachment: async (attachmentId: string) => {
-    return authenticatedFetch(`/media/attachments/${attachmentId}`, { 
-      method: 'DELETE' 
+    return authenticatedFetch(`/media/attachments/${attachmentId}`, {
+      method: 'DELETE'
     });
   },
 
@@ -675,7 +691,7 @@ export const filesAPI = {
 export const notificationsAPI = {
   getAll: async (params?: { page?: number; limit?: number; unreadOnly?: boolean }) => {
     const searchParams = new URLSearchParams();
-    
+
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
         if (value !== undefined) {
@@ -753,7 +769,7 @@ export const bountiesAPI = {
     maxAmount?: number;
   }) => {
     const searchParams = new URLSearchParams();
-    
+
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
         if (value !== undefined) {

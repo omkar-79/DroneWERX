@@ -20,11 +20,11 @@ const createThreadSchema = z.object({
   trlLevel: z.enum(['TRL1', 'TRL2', 'TRL3', 'TRL4', 'TRL5', 'TRL6', 'TRL7', 'TRL8', 'TRL9']).optional(),
   domain: z.string().max(100).optional(),
   location: z.string().max(100).optional(),
-  deadline: z.string().datetime().optional(),
+  deadline: z.string().datetime().transform((date) => new Date(date)).optional(),
   isAnonymous: z.boolean().default(false),
   bountyAmount: z.number().positive().optional(),
   bountyDescription: z.string().min(10).max(500).optional(),
-  bountyDeadline: z.string().datetime().optional(),
+  bountyDeadline: z.string().datetime().transform((date) => new Date(date)).optional(),
   isClassified: z.boolean().default(false),
   requiredClearance: z.string().max(50).optional(),
 });
@@ -38,7 +38,7 @@ const updateThreadSchema = z.object({
   status: z.enum(['OPEN', 'IN_PROGRESS', 'SOLVED', 'CLOSED']).optional(),
   isClassified: z.boolean().optional(),
   requiredClearance: z.string().max(50).optional(),
-  deadline: z.string().datetime().optional(),
+  deadline: z.string().datetime().transform((date) => new Date(date)).optional(),
 });
 
 const querySchema = z.object({
@@ -309,7 +309,7 @@ router.get('/:id', async (req, res): Promise<void> => {
 router.post('/', authenticateToken, async (req, res): Promise<void> => {
   try {
     console.log('Thread creation request body:', JSON.stringify(req.body, null, 2));
-    
+
     const validatedData = createThreadSchema.parse(req.body);
 
     // Check if category exists
@@ -490,7 +490,7 @@ router.post('/', authenticateToken, async (req, res): Promise<void> => {
 router.put('/:id', authenticateToken, async (req, res): Promise<void> => {
   try {
     const { id } = req.params;
-    
+
     const updateSchema = z.object({
       title: z.string().min(5).max(200).optional(),
       description: z.string().min(10).optional(),
@@ -662,7 +662,7 @@ router.post('/:id/vote', authenticateToken, async (req, res): Promise<void> => {
         });
 
         // Update thread vote count
-        const updateData = type === 'UPVOTE' 
+        const updateData = type === 'UPVOTE'
           ? { upvotes: { decrement: 1 } }
           : { downvotes: { decrement: 1 } };
 
@@ -707,7 +707,7 @@ router.post('/:id/vote', authenticateToken, async (req, res): Promise<void> => {
       });
 
       // Update thread vote count
-      const updateData = type === 'UPVOTE' 
+      const updateData = type === 'UPVOTE'
         ? { upvotes: { increment: 1 } }
         : { downvotes: { increment: 1 } };
 
@@ -759,7 +759,7 @@ router.get('/:id/comments', async (req, res): Promise<void> => {
     // Get comments with replies
     const [comments, totalCount] = await Promise.all([
       prisma.comment.findMany({
-        where: { 
+        where: {
           threadId: id,
           parentId: null, // Only get top-level comments
         },
@@ -798,7 +798,7 @@ router.get('/:id/comments', async (req, res): Promise<void> => {
         take: limit,
       }),
       prisma.comment.count({
-        where: { 
+        where: {
           threadId: id,
           parentId: null,
         },
@@ -809,7 +809,7 @@ router.get('/:id/comments', async (req, res): Promise<void> => {
     const transformedComments = await Promise.all(
       comments.map(async (comment) => {
         let hasUserVoted = null;
-        
+
         if (req.user) {
           const userVote = await prisma.vote.findUnique({
             where: {
@@ -820,7 +820,7 @@ router.get('/:id/comments', async (req, res): Promise<void> => {
               },
             },
           });
-          
+
           if (userVote) {
             hasUserVoted = userVote.type === 'UPVOTE' ? 'up' : 'down';
           }
@@ -830,7 +830,7 @@ router.get('/:id/comments', async (req, res): Promise<void> => {
         const transformedReplies = await Promise.all(
           comment.replies.map(async (reply) => {
             let replyHasUserVoted = null;
-            
+
             if (req.user) {
               const userVote = await prisma.vote.findUnique({
                 where: {
@@ -841,7 +841,7 @@ router.get('/:id/comments', async (req, res): Promise<void> => {
                   },
                 },
               });
-              
+
               if (userVote) {
                 replyHasUserVoted = userVote.type === 'UPVOTE' ? 'up' : 'down';
               }
